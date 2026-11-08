@@ -1,6 +1,6 @@
 # 唄まる -UtaMaru-
 
-### Language Support
+### Sorry, It's Japanese-Only...
 Support for additional languages is planned once the audio quality improvements have reached a satisfactory level.
 For now, development is focused on improving sound quality and stability.
 
