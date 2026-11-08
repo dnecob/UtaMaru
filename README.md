@@ -4,17 +4,17 @@
 Support for additional languages is planned once the audio quality improvements have reached a satisfactory level.<br>
 For now, development is focused on improving sound quality and stability.
 
-♪.楽譜で指定した音程へ、Androidスマートフォンのマイク入力音声をリアルタイムで変換・出力。<br>
+🎵楽譜で指定した音程へ、Androidスマートフォンのマイク入力音声をリアルタイムで変換・出力。<br>
 　普通に喋っているだけで歌っている様になるアプリです。
  
-♫.記録された楽譜を繰り返し再生しながら音階に合わせて声の音程を合わせ、スマホで再生したり<br>
+🎶記録された楽譜を繰り返し再生しながら音階に合わせて声の音程を合わせ、スマホで再生したり<br>
 　WindowsPC用USB/Wi-Fiマイクとしての利用も可能。<br>
 　入力音声をそのまま送信・出力するモードも搭載しています。
 
 - 対応OS：**Android 12以降（API 31以上）**<br>
 - PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続
 
-現在、音質・安定性の改善を優先して開発中です。
+⚠現在、音質・安定性の改善を優先して開発中です。⚠
 
 ## ダウンロード
 
@@ -103,8 +103,10 @@ Copyright (C) 2026 赫ね工房
 
 ※ WindowsReceiverについて
 
-WindowsReceiverの実行ファイルに対応するソースコードは、現在このリポジトリには含まれていません。WindowsReceiverのライセンス・配布条件は別途確認が必要です。
+WindowsReceiverの実行ファイルに対応するソースコードは、現在このリポジトリには含まれていません。<br>
+WindowsReceiverのライセンス・配布条件は別途確認が必要です。
 
+--------------------------------------------------------------------------------------------------------------------------------------------------------
 ### 楽譜画像 to 唄まる用楽譜
 
 以下の文章と共に楽譜の画像をAIへ渡すとAIが楽譜画像を唄まる用の楽譜(文字列)に変換してくれます。
