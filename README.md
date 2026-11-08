@@ -81,8 +81,8 @@ Android Studioでリポジトリのルートを開いてください。<br>
 Android SDK API 36、JDK 17、対応するNDKとCMakeが必要です。<br>
 SDKのパスは各自の `local.properties` に設定します（Git管理対象外）。
 
-**Rubber Band Library 4.0.0のソースは `third_party/rubberband-4.0.0/` に同梱しています。<br>
-** `SETUP_RUBBERBAND.bat` はソースが存在しない場合の再取得用で、通常のクローン後に毎回実行する必要はありません。<br>
+・Rubber Band Library 4.0.0のソースは `third_party/rubberband-4.0.0/` に同梱しています。<br>
+・ `SETUP_RUBBERBAND.bat` はソースが存在しない場合の再取得用で、通常のクローン後に毎回実行する必要はありません。<br>
 Androidアプリのネイティブビルドには同梱ソースの `single/RubberBandSingle.cpp` を利用します。
 
 `BUILD_UTAMARU_APK.bat` は **デバッグ署名のAPK** を作成します。Releasesに配布するAPKは、別途リリース署名してください。署名鍵とパスワードをGitHubにアップロードしないでください。
