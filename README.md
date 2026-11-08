@@ -4,7 +4,9 @@
 Support for additional languages is planned once the audio quality improvements have reached a satisfactory level.
 For now, development is focused on improving sound quality and stability.
 
-**楽譜に指定した音程へ、Androidスマートフォンのマイク音声をリアルタイムで変換する試験版アプリです。** 画面内の楽譜を繰り返し再生しながら声の音程を合わせ、スマホで再生したり、Windowsへ送ってPCマイクとして利用したりできます。原音をそのまま出すモードも搭載しています。
+**楽譜に指定した音程へ、Androidスマートフォンのマイク音声をリアルタイムで変換する試験版アプリです。
+** 画面内の楽譜を繰り返し再生しながら声の音程を合わせ、スマホで再生したり、Windowsへ送ってPCマイクとして利用したりできます。
+原音をそのまま出すモードも搭載しています。
 
 - 対応OS：**Android 12以降（API 31以上）**
 - PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続
