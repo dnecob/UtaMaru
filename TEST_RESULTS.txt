@@ -1,0 +1,16 @@
+VoicePitchLooper v0.2 TEST RESULTS (2026-10-28)
+=================================================
+Confirmed:
+- Previous prototype source reviewed and modified for Android/PC output choices.
+- WindowsReceiver/src/main.go cross-compiled using Go for GOOS=windows GOARCH=amd64 CGO_ENABLED=0.
+- Windows receiver executable included (no Python runtime or Go runtime required on PC).
+- Windows receiver uses WinMM waveOut output 48kHz 16-bit stereo to detected CABLE Input.
+- Android streams 48kHz 16-bit mono PCM over TCP with fixed 20ms frames.
+- USB ADB reverse and Wi-Fi scripts provided.
+
+NOT confirmed:
+- Android SDK/Gradle full build and actual Android device runtime.
+- Windows executable runtime on an actual Windows 10/11 computer.
+- VB-CABLE endpoint name detection on a particular PC.
+- USB/Wi-Fi real-time microphone streaming, actual audio quality, or latency.
+- Natural-sounding timbre-preserving pitch shifting (not implemented).

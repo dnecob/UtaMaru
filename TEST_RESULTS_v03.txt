@@ -1,0 +1,8 @@
+VoicePitchLooper v0.3 Kotlin DSP smoke test
+- Compiled PitchShifter.kt and LegacyPitchShifter.kt with local kotlinc: PASS
+- Synthetic mono input: 48kHz, harmonic waveform, F0=220Hz, 4 seconds
+- Change ratio every 14 blocks of 960 samples: 1.19, 1.5, 2.0, 0.89
+- 192,000 output samples per method produced without errors
+- Synthetic signal first differences: new max 0.274, old max 0.929, normalized [-1,1]
+- These numbers are synthetic diagnostics, not a subjective audio-quality guarantee.
+- Android full build and real voice tests: NOT DONE on this environment.
