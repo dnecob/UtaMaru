@@ -94,11 +94,12 @@ Copyright (C) 2026 赫ね工房
 唄まる -UtaMaru- の独自ソースコードは **GNU General Public License version 2 or later（GPL-2.0-or-later）** で公開しています。<br>
 本アプリには **Rubber Band Library 4.0.0** が組み込まれており、GPL-2.0-or-laterの条件で再配布しています。
 
-- ライセンス全文：[LICENSE](LICENSE)
-- Rubber Bandのライセンス：`third_party/rubberband-4.0.0/COPYING`
-- 外部ライブラリの著作権・ライセンス情報：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- ライセンス全文：[LICENSE](LICENSE)<br>
+- Rubber Bandのライセンス：`third_party/rubberband-4.0.0/COPYING`<br>
+- 外部ライブラリの著作権・ライセンス情報：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)<br>
 
-本リポジトリにはRubber Bandのソースコード一式を含めています。配布するAPKに対応するソースコードも提供します。
+本リポジトリにはRubber Bandのソースコード一式を含めています。<br>
+配布するAPKに対応するソースコードも提供します。
 
 ※ WindowsReceiverについて
 
