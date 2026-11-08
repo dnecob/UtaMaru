@@ -25,6 +25,7 @@ Androidアプリのネイティブライブラリは、同梱された `single/R
 - 著作権：Copyright (c) 2003–2010 Mark Borgerding
 - ライセンス：BSD-3-Clause（SPDX表記）
 - ソース中の表示：`third_party/rubberband-4.0.0/src/ext/kissfft/COPYING`
+- BSD-3-Clauseライセンス全文：`third_party/rubberband-4.0.0/LICENSES/BSD-3-Clause`
 - 公式コード：https://github.com/mborgerding/kissfft
 
 ### Speex（リサンプラ関連コード）

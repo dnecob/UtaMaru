@@ -1,0 +1,12 @@
+唄まる -UtaMaru-
+Copyright (C) 2026 赫ね工房
+
+唄まるの独自ソースコードは GNU General Public License,
+version 2 or (at your option) any later version (GPL-2.0-or-later)
+の条件で配布します。詳しくはルートの LICENSE を参照してください。
+
+本アプリは無保証です。詳細は GNU GPL の条項に従います。
+
+Rubber Band Library 4.0.0その他の第三者コードは各権利者の著作物です。
+これらの条件は THIRD_PARTY_NOTICES.md と各ソース内のライセンス文書を
+参照してください。

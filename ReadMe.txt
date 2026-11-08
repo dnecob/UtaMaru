@@ -67,8 +67,13 @@ ADB公式：https://developer.android.com/tools/releases/platform-tools?hl=ja
 ・本アプリは試験版です。ノイズや動作上の問題が生じる場合があります。
 ・スマホでの再生は、スマホ内の別アプリへの仮想マイク出力とは異なります。
 
-■ ライセンス
-アプリの独自ソースはGPL-2.0-or-laterで公開する想定です。
-Rubber Band Library 4.0.0をGPLの下で組み込んでいます。
-詳細はGitHubリポジトリの LICENSE、THIRD_PARTY_NOTICES.md、
+■ 著作権・ライセンス
+Copyright (C) 2026 赫ね工房
+
+唄まる -UtaMaru- の独自ソースコードは、GNU General Public License
+version 2 or later（GPL-2.0-or-later）で公開しています。
+本アプリにはRubber Band Library 4.0.0をGPLの条件で組み込んでいます。
+
+ライセンス全文と第三者ソフトウェアの著作権表示はGitHubリポジトリの
+LICENSE、COPYRIGHT、THIRD_PARTY_NOTICES.md、
 third_party/rubberband-4.0.0/COPYING を参照してください。
