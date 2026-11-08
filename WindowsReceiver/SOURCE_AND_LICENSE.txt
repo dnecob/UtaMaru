@@ -1,0 +1,28 @@
+WindowsReceiver - Source code and licenses
+==========================================
+
+Copyright (C) 2026 赫ね工房
+
+The original WindowsReceiver program is distributed under the
+GNU General Public License, version 2 or (at your option) any later version
+(GPL-2.0-or-later).
+See the LICENSE file at the root of the UtaMaru repository for the full text.
+
+The receiver is written in Go and uses the Go standard library.
+The Go 1.23.2 license and copyright notice are provided in GO_LICENSE.txt.
+It does not embed the Rubber Band library or VB-CABLE.
+
+Source file:
+  src/main.go
+
+Build instructions (Windows, Go 1.23.2):
+  1. Open Command Prompt in the WindowsReceiver directory.
+  2. Run:
+       set GOOS=windows
+       set GOARCH=amd64
+       set CGO_ENABLED=0
+       go build -trimpath -ldflags="-s -w" -o VoicePitchReceiver_Win64.exe src\main.go
+
+The supplied source was verified by independently rebuilding it with Go 1.23.2
+using these flags and checking that the executable was byte-for-byte identical
+to the existing VoicePitchReceiver_Win64.exe in the provided UtaMaru project.
