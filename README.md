@@ -14,7 +14,7 @@ For now, development is focused on improving sound quality and stability.
 - 対応OS：**Android 12以降（API 31以上）**<br>
 - PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続
 
-音質・安定性の改善を優先して開発中です。
+現在、音質・安定性の改善を優先して開発中です。
 
 ## ダウンロード
 
