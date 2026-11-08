@@ -2,6 +2,7 @@
 
 ### Sorry, It's Japanese-Only for Now!
 Support for additional languages is planned once the audio quality improvements have reached a satisfactory level.
+
 For now, development is focused on improving sound quality and stability.
 
 **楽譜に指定した音程へ、Androidスマートフォンのマイク音声をリアルタイムで変換する試験版アプリです。  
