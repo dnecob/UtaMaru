@@ -4,13 +4,16 @@
 Support for additional languages is planned once the audio quality improvements have reached a satisfactory level.<br>
 For now, development is focused on improving sound quality and stability.
 
-**楽譜に指定した音程へ、Androidスマートフォンのマイク音声をリアルタイムで変換するアプリです。<br>
-** 画面内の楽譜を繰り返し再生しながら声の音程を合わせ、スマホで再生したり、Windowsへ送ってPCマイクとして利用したりできます。<br>
- 入力音声をそのまま出すモードも搭載しています。
+**楽譜で指定した音程へ、Androidスマートフォンのマイク入力音声をリアルタイムで変換・出力。<br>
+ 普通に喋るだけで歌っているようになるアプリです。
+ 
+** 記録された楽譜を繰り返し再生しながら音階に合わせて声の音程を合わせ、スマホで再生したり、WindowsPCへ送るPC用マイクとしての利用も可能。<br>
+ 入力音声をそのまま送信・出力するモードも搭載しています。
 
 - 対応OS：**Android 12以降（API 31以上）**<br>
-- PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続<br>
-- 開発状況：**ベータ版 0.8.7.20**。音質・安定性の改善を優先して開発中です<br>
+- PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続
+
+音質・安定性の改善を優先して開発中です。
 
 ## ダウンロード
 
@@ -18,9 +21,9 @@ For now, development is focused on improving sound quality and stability.
 Releasesに配布ファイルが表示されない場合は、まだ公開されていません。
 
 - Android：`UtaMaru` のAPK（配布用に署名されたもの）<br>
-- Windows：`WindowsReceiver` のZIP（Windowsの仮想マイクとして使う場合のみ）
+- Windows：`WindowsReceiver.zip` スマホをWindowsの仮想マイクとして使用する場合のみ
 
-スマホ単体で使う場合に **WindowsReceiver、ADB、VB-CABLEは必要ありません**。
+スマホ単体で使用する場合は**WindowsReceiver、ADB、VB-CABLEは必要ありません**。
 
 ## スマホだけで使う場合
 
