@@ -89,16 +89,20 @@ Androidアプリのネイティブビルドには同梱ソースの `single/Rubb
 
 ## ソースコード・ライセンス
 
-- 唄まるAndroidアプリの独自ソースコードは **GNU GPL version 2 or later（GPL-2.0-or-later）** の条件で公開する想定です。<br>
-- ライセンス本文：[LICENSE](LICENSE)<br>
-- 組み込みライブラリ **Rubber Band Library 4.0.0** もGPL-2.0-or-laterの下で再配布しています。<br>
-- 著作権・ライセンス本文は `third_party/rubberband-4.0.0/README.md`、`third_party/rubberband-4.0.0/COPYING` を参照してください。<br>
-- その他の第三者コードの表示：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+Copyright (C) 2026 赫ね工房
 
-GPLに基づく配布物の対応ソースコードは、実際に配布するAPKと一致するバージョンを提供してください。<br>
-本リポジトリにはRubber Bandのソース一式を含めています。
-※ WindowsReceiverの実行ファイルについては、このリポジトリ内に対応するソースコードが含まれていません。<br>
- WindowsReceiverを含む配布物の権利・配布条件は別途確認してください。
+唄まる -UtaMaru- の独自ソースコードは **GNU General Public License version 2 or later（GPL-2.0-or-later）** で公開しています。<br>
+本アプリには **Rubber Band Library 4.0.0** が組み込まれており、GPL-2.0-or-laterの条件で再配布しています。
+
+- ライセンス全文：[LICENSE](LICENSE)
+- Rubber Bandのライセンス：`third_party/rubberband-4.0.0/COPYING`
+- 外部ライブラリの著作権・ライセンス情報：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+
+本リポジトリにはRubber Bandのソースコード一式を含めています。配布するAPKに対応するソースコードも提供します。
+
+※ WindowsReceiverについて
+
+WindowsReceiverの実行ファイルに対応するソースコードは、現在このリポジトリには含まれていません。WindowsReceiverのライセンス・配布条件は別途確認が必要です。
 
 ### 楽譜画像 to 唄まる用楽譜
 
