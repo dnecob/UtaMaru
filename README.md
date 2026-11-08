@@ -6,7 +6,7 @@ For now, development is focused on improving sound quality and stability.
 
 **楽譜に指定した音程へ、Androidスマートフォンのマイク音声をリアルタイムで変換するアプリです。<br>
 ** 画面内の楽譜を繰り返し再生しながら声の音程を合わせ、スマホで再生したり、Windowsへ送ってPCマイクとして利用したりできます。<br>
-入力音声をそのまま出すモードも搭載しています。
+ 入力音声をそのまま出すモードも搭載しています。
 
 - 対応OS：**Android 12以降（API 31以上）**<br>
 - PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続<br>
@@ -94,4 +94,4 @@ GPLに基づく配布物の対応ソースコードは、実際に配布するAP
 本リポジトリにはRubber Bandのソース一式を含めています。
 
 ※ WindowsReceiverの実行ファイルについては、このリポジトリ内に対応するソースコードが含まれていません。<br>
-WindowsReceiverを含む配布物の権利・配布条件は別途確認してください。
+ WindowsReceiverを含む配布物の権利・配布条件は別途確認してください。
