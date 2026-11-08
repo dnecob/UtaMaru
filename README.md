@@ -22,7 +22,7 @@ For now, development is focused on improving sound quality and stability.
 Releasesに配布ファイルが表示されない場合は、まだ公開されていません。
 
 - Android：`UtaMaru.apk` インストール用ファイル<br>
-- Windows：`WindowsReceiver.zip` スマホをWindowsの仮想マイクとして使用する場合のみ
+- Windows：`WindowsReceiver.zip` スマホをWindowsの仮想マイクとして使用する場合のみ。展開して使用します。
 
 スマホ単体で使用する場合は**WindowsReceiver、ADB、VB-CABLEは必要ありません**。
 
@@ -62,7 +62,9 @@ Releasesに配布ファイルが表示されない場合は、まだ公開され
 
 WindowsReceiverを使ってPCに音声を送り、VB-CABLE経由でDiscord・OBSなどの入力に利用できます。
 
-詳しいセットアップ手順は **[WindowsReceiver/ReadMe.txt](WindowsReceiver/ReadMe.txt)** を参照してください。
+詳しいセットアップ手順は **[WindowsReceiver/ReadMe.txt](WindowsReceiver/ReadMe.txt)** を参照してください。<br>
+一応`START_PC_USB.bat`や`START_PC_WIFI.bat`を起動するだけで足りないファイルにチェックが入り<br>
+足りなければそのDL先へ移動できる様にしてあります。
 
 - USB接続：ADB（Google SDK Platform-Tools）が必要。アプリのPC接続先は `127.0.0.1`<br>
 - Wi-Fi接続：PCとスマホを同じLANに接続し、アプリのPC接続先にPCのIPv4アドレスを入力<br>
