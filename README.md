@@ -11,7 +11,7 @@ For now, development is focused on improving sound quality and stability.
 　WindowsPC用USB/Wi-Fiマイクとしての利用も可能。<br>
 　入力音声をそのまま送信・出力するモードも搭載しています。
 
-楽譜画像やMIDIから唄まる用の楽譜に変換する方法も最下部に載せてあります
+👇️楽譜画像やMIDIから唄まる用の楽譜に変換する方法も最下部に載せてあります👇️
 
 - 対応OS：**Android 12以降（API 31以上）**<br>
 - PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続
