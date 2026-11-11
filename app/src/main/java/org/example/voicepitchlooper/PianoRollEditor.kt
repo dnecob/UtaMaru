@@ -180,8 +180,8 @@ class PianoRollEditor(
 
     private fun dp(v: Int) = (v * activity.resources.displayMetrics.density + 0.5f).toInt()
     private fun label(value: String, size: Float, color: Int = ink): TextView =
-        TextView(activity).apply { text = value; textSize = size; setTextColor(color) }
-    private fun button(value: String, f: () -> Unit) = Button(activity).apply {
+        LocalizedTextView(activity).apply { text = value; textSize = size; setTextColor(color) }
+    private fun button(value: String, f: () -> Unit) = LocalizedButton(activity).apply {
         text = value; isAllCaps = false; setOnClickListener { f() }
         editButtons.add(this)
     }
@@ -230,11 +230,11 @@ class PianoRollEditor(
         val current = snapshot()
         val previous = undoHistory.peekLast()
         if (previous != null && sameScoreAndTempo(previous, current)) {
-            Toast.makeText(activity, "この状態はすでに履歴にあります", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, UiLanguage.text(activity, "この状態はすでに履歴にあります"), Toast.LENGTH_SHORT).show()
             return
         }
         remember(current)
-        Toast.makeText(activity, "現在の楽譜をやり直し履歴に一時保存しました", Toast.LENGTH_SHORT).show()
+        Toast.makeText(activity, UiLanguage.text(activity, "現在の楽譜をやり直し履歴に一時保存しました"), Toast.LENGTH_SHORT).show()
     }
 
     /** Prevent half-completed mutations: either all changes succeed or restore immediately. */
@@ -293,13 +293,13 @@ class PianoRollEditor(
             setSelectAllOnFocus(true)
         }
         AlertDialog.Builder(activity)
-            .setTitle("楽譜のテンポ（60～500 BPM）")
+            .setTitle(UiLanguage.text(activity, "楽譜のテンポ（60～500 BPM）"))
             .setView(field)
-            .setNegativeButton("キャンセル", null)
-            .setPositiveButton("設定") { _, _ ->
+            .setNegativeButton(UiLanguage.text(activity, "キャンセル"), null)
+            .setPositiveButton(UiLanguage.text(activity, "設定")) { _, _ ->
                 val number = field.text.toString().toIntOrNull()
                 if (number == null || number !in 60..500)
-                    Toast.makeText(activity, "60～500の数字を入力してください", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, UiLanguage.text(activity, "60～500の数字を入力してください"), Toast.LENGTH_SHORT).show()
                 else updateTempo(number)
             }.show()
     }
@@ -360,7 +360,7 @@ class PianoRollEditor(
                     } else {
                         setCaptureUi(false)
                         recordingStatus.text = "カウント音を再生できません: $failure"
-                        Toast.makeText(activity, "録音を開始しませんでした: $failure", Toast.LENGTH_LONG).show()
+                        Toast.makeText(activity, UiLanguage.text(activity, "録音を開始しませんでした: $failure"), Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -420,15 +420,17 @@ class PianoRollEditor(
         activity.ensureEditorMicrophonePermission {
             if (closed || recorder != null || countInActive) return@ensureEditorMicrophonePermission
             AlertDialog.Builder(activity)
-                .setTitle(if (fromStart) "先頭から録音" else "現在位置から録音")
+                .setTitle(UiLanguage.text(activity, if (fromStart) "先頭から録音" else "現在位置から録音"))
                 .setMessage(
-                    "第${startBeat / 4 + 1}小節の${startBeat % 4 + 1}拍目から録音します。" +
-                    "BPMに合わせた音付き8カウント後、1拍ずつ音符を上書きします。" +
-                    "録音していない前後の拍はそのまま残ります。" +
-                    "録音内容は「戻す」で取り消せます。"
+                    UiLanguage.text(activity,
+                        "第${startBeat / 4 + 1}小節の${startBeat % 4 + 1}拍目から録音します。") +
+                    UiLanguage.text(activity,
+                        "BPMに合わせた音付き8カウント後、1拍ずつ音符を上書きします。" +
+                        "録音していない前後の拍はそのまま残ります。" +
+                        "録音内容は「戻す」で取り消せます。")
                 )
-                .setNegativeButton("キャンセル", null)
-                .setPositiveButton("録音開始") { _, _ -> beginCountdown(startBeat, sourceButton) }
+                .setNegativeButton(UiLanguage.text(activity, "キャンセル"), null)
+                .setPositiveButton(UiLanguage.text(activity, "録音開始")) { _, _ -> beginCountdown(startBeat, sourceButton) }
                 .show()
         }
     }
@@ -647,7 +649,7 @@ class PianoRollEditor(
             setTypeface(typeface, Typeface.BOLD)
             visibility = View.GONE
             setBackgroundColor(Color.rgb(228, 239, 255))
-            contentDescription = "録音開始までの残りカウント"
+            contentDescription = UiLanguage.text(activity, "録音開始までの残りカウント")
         }
         append(root, countdownDisplay, 3)
         recordingStatus = label("音付き8カウント → マイク録音 → 拍ごとに音符化。60～500 BPM対応。", 12f, muted)
@@ -665,7 +667,7 @@ class PianoRollEditor(
                     preview.silence()
                     refreshScore()
                     Toast.makeText(activity,
-                        if (extended) "休符を挿入し、末尾に1小節追加しました" else "休符を挿入しました",
+                        UiLanguage.text(activity, if (extended) "休符を挿入し、末尾に1小節追加しました" else "休符を挿入しました"),
                         Toast.LENGTH_SHORT).show()
                 }
             },
@@ -708,7 +710,7 @@ class PianoRollEditor(
         append(root, row(
             button("末尾の小節を\n削除") {
                 if (model.size < 12) {
-                    Toast.makeText(activity, "最低2小節は残します", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, UiLanguage.text(activity, "最低2小節は残します"), Toast.LENGTH_SHORT).show()
                     return@button
                 }
                 val deleteOne = {
@@ -720,30 +722,30 @@ class PianoRollEditor(
                 }
                 if (model.lastMeasureHasNotes()) {
                     AlertDialog.Builder(activity)
-                        .setTitle("末尾の小節を削除しますか？")
-                        .setMessage("最後の4拍に音符があります。取り消しは「↶ 戻す」で可能です。")
-                        .setNegativeButton("キャンセル", null)
-                        .setPositiveButton("削除") { _, _ -> deleteOne() }
+                        .setTitle(UiLanguage.text(activity, "末尾の小節を削除しますか？"))
+                        .setMessage(UiLanguage.text(activity, "最後の4拍に音符があります。取り消しは「↶ 戻す」で可能です。"))
+                        .setNegativeButton(UiLanguage.text(activity, "キャンセル"), null)
+                        .setPositiveButton(UiLanguage.text(activity, "削除")) { _, _ -> deleteOne() }
                         .show()
                 } else deleteOne()
             },
             button("選択小節より後の\n小節全削除") {
                 val keep = ((selected / 4) + 1) * 4
                 if (keep < 8) {
-                    Toast.makeText(activity, "最低2小節は残します。第2小節以降を選択してください", Toast.LENGTH_LONG).show()
+                    Toast.makeText(activity, UiLanguage.text(activity, "最低2小節は残します。第2小節以降を選択してください"), Toast.LENGTH_LONG).show()
                     return@button
                 }
                 val tail = (model.size - keep).coerceAtLeast(0)
                 if (tail == 0) {
-                    Toast.makeText(activity, "選択小節より後に削除する拍はありません", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, UiLanguage.text(activity, "選択小節より後に削除する拍はありません"), Toast.LENGTH_SHORT).show()
                     return@button
                 }
                 val pitched = (keep until model.size).count { model.noteAt(it).frequency != null }
                 AlertDialog.Builder(activity)
-                    .setTitle("選択小節より後をすべて削除しますか？")
-                    .setMessage("第${selected / 4 + 1}小節まで残し、後ろの${tail}拍（音符${pitched}個）を削除します。\n「↶ 戻す」で取り消せます。")
-                    .setNegativeButton("キャンセル", null)
-                    .setPositiveButton("全削除") { _, _ ->
+                    .setTitle(UiLanguage.text(activity, "選択小節より後をすべて削除しますか？"))
+                    .setMessage(UiLanguage.text(activity, "第${selected / 4 + 1}小節まで残し、後ろの${tail}拍（音符${pitched}個）を削除します。\n「↶ 戻す」で取り消せます。"))
+                    .setNegativeButton(UiLanguage.text(activity, "キャンセル"), null)
+                    .setPositiveButton(UiLanguage.text(activity, "全削除")) { _, _ ->
                         editWithUndo {
                             model.removeAllMeasuresAfter(selected)
                             selected = selected.coerceAtMost(model.size - 1)
@@ -762,7 +764,7 @@ class PianoRollEditor(
                     editOctave = note.label.lastOrNull()?.digitToIntOrNull()?.coerceIn(1, 6)
                         ?: (editOctave - 1).coerceIn(1, 6)
                     refreshScore()
-                    Toast.makeText(activity, "${moved}音を1オクターブ下げました", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, UiLanguage.text(activity, "${moved}音を1オクターブ下げました"), Toast.LENGTH_SHORT).show()
                 }
             },
             button("全音符を1オクターブ上げる") {
@@ -772,7 +774,7 @@ class PianoRollEditor(
                     editOctave = note.label.lastOrNull()?.digitToIntOrNull()?.coerceIn(1, 6)
                         ?: (editOctave + 1).coerceIn(1, 6)
                     refreshScore()
-                    Toast.makeText(activity, "${moved}音を1オクターブ上げました", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, UiLanguage.text(activity, "${moved}音を1オクターブ上げました"), Toast.LENGTH_SHORT).show()
                 }
             }, height = 62
         ), 4)
@@ -795,7 +797,7 @@ class PianoRollEditor(
             button("3") { chooseOctave(3) }, button("4") { chooseOctave(4) },
             button("5") { chooseOctave(5) }, button("6") { chooseOctave(6) }, height = 38
         ), 2)
-        autoAdvanceCheck = CheckBox(activity).apply {
+        autoAdvanceCheck = LocalizedCheckBox(activity).apply {
             text = "音符入力後に次の拍へ自動送り"
             textSize = 14f
             isChecked = autoAdvanceNotes
@@ -873,7 +875,7 @@ class PianoRollEditor(
         toolbar.addView(undoButton, LinearLayout.LayoutParams(dp(92), dp(44)))
         checkpointButton = button("↰") { saveCheckpoint() }.apply {
             textSize = 21f
-            contentDescription = "現在の楽譜をやり直し履歴に一時保存"
+            contentDescription = UiLanguage.text(activity, "現在の楽譜をやり直し履歴に一時保存")
             minWidth = 0
             minimumWidth = 0
             setPadding(0, 0, 0, 0)
@@ -939,7 +941,7 @@ class PianoRollEditor(
     }
 
     private fun errorToast(e: Exception) {
-        Toast.makeText(activity, e.message ?: "編集できませんでした", Toast.LENGTH_SHORT).show()
+        Toast.makeText(activity, UiLanguage.text(activity, e.message ?: "編集できませんでした"), Toast.LENGTH_SHORT).show()
     }
 }
 

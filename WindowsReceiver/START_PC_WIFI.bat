@@ -24,7 +24,6 @@ echo =======================================================
 echo.
 echo Use only a trusted private network.
 echo VB-CABLE official download: https://vb-audio.com/Cable/
-echo To copy a URL or open the official website, run COPY_OFFICIAL_URLS.bat.
 echo The phone and the PC must be able to communicate on the same LAN.
 echo.
 echo PC IPv4 addresses (select the address on your local network):

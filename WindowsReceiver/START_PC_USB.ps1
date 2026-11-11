@@ -228,7 +228,6 @@ Write-Host '========================================================='
 Write-Host ''
 Write-Host '必要: VB-CABLE、Google SDK Platform-Tools（ADB）、USBデバッグ'
 Write-Host '※ ADBは同梱されていません。公式サイトから取得してください。'
-Write-Host '※ 公式URLのコピー・ブラウザ起動: COPY_OFFICIAL_URLS.bat'
 Write-Host ''
 
 if (-not (Test-Path -LiteralPath $receiverExe -PathType Leaf)) {

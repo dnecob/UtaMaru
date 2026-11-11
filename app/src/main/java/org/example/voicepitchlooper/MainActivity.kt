@@ -2,6 +2,7 @@ package org.example.voicepitchlooper
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -61,6 +62,7 @@ class MainActivity : Activity() {
     private var stoppingAudio = false
     private var speakerWarningShown = false
     private lateinit var voiceEngineSpinner: Spinner
+    private lateinit var languageSpinner: Spinner
     private lateinit var noiseGateCheck: CheckBox
     private lateinit var naturalVoiceCheck: CheckBox
     private lateinit var originalMonitorCheck: CheckBox
@@ -81,14 +83,35 @@ class MainActivity : Activity() {
     private val muted = Color.rgb(83, 99, 121)
     private val blue = Color.rgb(36, 107, 224)
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(UiLanguage.wrap(newBase))
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("ui_score_text", scoreInput.text.toString())
+        outState.putString("ui_pc_host", pcHostInput.text.toString())
+        outState.putInt("ui_bpm", currentBpm)
+        outState.putInt("ui_engine", voiceEngineSpinner.selectedItemPosition)
+        outState.putBoolean("ui_gate", noiseGateCheck.isChecked)
+        outState.putBoolean("ui_original_monitor", originalMonitorCheck.isChecked)
+        outState.putInt("ui_preset_slot", currentPresetSlot ?: -1)
+        outState.putString("ui_loaded_score", loadedPresetScore)
+        outState.putInt("ui_loaded_bpm", loadedPresetBpm ?: -1)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onRetainNonConfigurationInstance(): Any? = editorHistory
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        @Suppress("DEPRECATION")
+        editorHistory = lastNonConfigurationInstance as? PianoRollEditor.HistoryCarry
         engine = AudioEngine(
             onStatus = { status -> runOnUiThread { if (active) renderStatus(status) } },
             onError = { error -> runOnUiThread {
                 lastAudioError = error
                 info.text = "音声エラー: $error\n機種や音声経路によって48kHzが使えない場合があります。"
-                Toast.makeText(this, "音声エラーが発生しました", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, UiLanguage.text(this, "音声エラーが発生しました"), Toast.LENGTH_LONG).show()
             } },
             onStopped = { runOnUiThread {
                 stoppingAudio = false
@@ -119,12 +142,23 @@ class MainActivity : Activity() {
         val savedEngine = audioSettings.getString("voice_engine", VoiceEngine.STANDARD.name)
         val index = VoiceEngine.entries.indexOfFirst { it.name == savedEngine }
         voiceEngineSpinner.setSelection(index.coerceAtLeast(0))
-        restoreLastPreset()
+        if (savedInstanceState == null) restoreLastPreset() else {
+            scoreInput.setText(savedInstanceState.getString("ui_score_text", "D3A3F# GB3G3G"))
+            pcHostInput.setText(savedInstanceState.getString("ui_pc_host", "127.0.0.1"))
+            updateBpm(savedInstanceState.getInt("ui_bpm", 200))
+            voiceEngineSpinner.setSelection(savedInstanceState.getInt("ui_engine", 0))
+            noiseGateCheck.isChecked = savedInstanceState.getBoolean("ui_gate", true)
+            originalMonitorCheck.isChecked = savedInstanceState.getBoolean("ui_original_monitor", false)
+            currentPresetSlot = savedInstanceState.getInt("ui_preset_slot", -1).takeIf { it >= 0 }
+            loadedPresetScore = savedInstanceState.getString("ui_loaded_score")
+            loadedPresetBpm = savedInstanceState.getInt("ui_loaded_bpm", -1).takeIf { it >= 0 }
+            refreshPresetButtons()
+        }
     }
 
     private fun dp(n: Int): Int = (resources.displayMetrics.density * n + 0.5f).toInt()
     private fun label(text: String, size: Float, bold: Boolean = false, color: Int = ink): TextView =
-        TextView(this).apply {
+        LocalizedTextView(this).apply {
             this.text = text
             textSize = size
             setTextColor(color)
@@ -162,7 +196,7 @@ class MainActivity : Activity() {
         setContentView(scroll)
 
         add(root, label("唄まる -UtaMaru-", 27f, true))
-        add(root, label("Android 12+  |  PCマイク対応・試験版 0.8.7.20", 13f, color = muted), 4)
+        add(root, label("Android 12+  |  PCマイク対応・試験版 0.8.7.21", 13f, color = muted), 4)
         add(root, label("楽譜を編集", 17f, true), 28)
         add(root, label("例：D3A3F# GB3G3G（空白=1拍休符、#=半音上、数字=オクターブ）", 13f, color = muted), 5)
         scoreInput = EditText(this).apply {
@@ -173,7 +207,7 @@ class MainActivity : Activity() {
             setPadding(dp(12), dp(9), dp(12), dp(9))
         }
         add(root, scoreInput, 8)
-        scoreEditorButton = Button(this).apply {
+        scoreEditorButton = LocalizedButton(this).apply {
             text = "♫ 五線譜で楽譜を編集"
             isAllCaps = false
             setOnClickListener { openGraphicalEditor() }
@@ -187,7 +221,7 @@ class MainActivity : Activity() {
         add(root, presetStatus, 3)
         val presetRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         presetButtons = Array(3) { index ->
-            Button(this).apply {
+            LocalizedButton(this).apply {
                 isAllCaps = false
                 textSize = 12f
                 setOnClickListener { recallPreset(index) }
@@ -195,7 +229,7 @@ class MainActivity : Activity() {
             }
         }
         add(root, presetRow, 5)
-        savePresetButton = Button(this).apply {
+        savePresetButton = LocalizedButton(this).apply {
             text = "現在の楽譜とBPMをプリセットに保存"
             isAllCaps = false
             setOnClickListener { selectSaveSlot() }
@@ -217,11 +251,11 @@ class MainActivity : Activity() {
             background = ColorDrawable(Color.TRANSPARENT)
             minimumHeight = dp(50)
             setPadding(dp(12), 0, dp(32), 0)
-            contentDescription = "音声変換エンジンを選択"
+            contentDescription = UiLanguage.text(this@MainActivity, "音声変換エンジンを選択")
             val entries = VoiceEngine.entries.map { engine ->
                 if (engine == VoiceEngine.RUBBER_BAND && !RubberBandNative.isAvailable)
-                    "Rubber Band（未導入・セットアップが必要）"
-                else engine.caption
+                    UiLanguage.text(this@MainActivity, "Rubber Band（未導入・セットアップが必要）")
+                else UiLanguage.text(this@MainActivity, engine.caption)
             }
             adapter = ArrayAdapter(this@MainActivity,
                 android.R.layout.simple_spinner_item, entries).also {
@@ -239,14 +273,14 @@ class MainActivity : Activity() {
         add(root, engineSelector, 5)
         add(root, label("切り替えは停止中のみ。Rubber Bandは導入後、声のフォルマント維持を試せます。",
             12f, color = muted), 2)
-        noiseGateCheck = CheckBox(this).apply {
+        noiseGateCheck = LocalizedCheckBox(this).apply {
             text = "音声がないときのノイズ抑制（推奨）"
             textSize = 14f
             isChecked = true
         }
         add(root, noiseGateCheck, 8)
         val settings = getSharedPreferences("utamaru_audio_settings", MODE_PRIVATE)
-        naturalVoiceCheck = CheckBox(this).apply {
+        naturalVoiceCheck = LocalizedCheckBox(this).apply {
             text = "自然声優先（元の音程に近い声を再合成しない・試験）"
             textSize = 14f
             isChecked = settings.getBoolean("near_unity_bypass", true)
@@ -257,7 +291,7 @@ class MainActivity : Activity() {
         add(root, naturalVoiceCheck, 5)
         add(root, label("元の音程との差が15セント以内なら原音を優先し、25セント以上で変換音へ戻します。" +
             "標準・PSOLA風のみ。OFFでv0.8.6相当の音程変換と比較できます。", 12f, color = muted), 2)
-        originalMonitorCheck = CheckBox(this).apply {
+        originalMonitorCheck = LocalizedCheckBox(this).apply {
             text = "原音モニター（変換を聴き比べる診断用）"
             textSize = 14f
             isChecked = false
@@ -292,7 +326,7 @@ class MainActivity : Activity() {
             "従来の設定は0.50〜3.50倍。範囲を広げるほど声質が崩れやすくなります。", 12f, color = muted), 2)
 
         add(root, label("休符の音声出力", 15f, true), 16)
-        restModeButton = Button(this).apply {
+        restModeButton = LocalizedButton(this).apply {
             isAllCaps = false
             text = "休符：${restMode.caption} ▼"
             setOnClickListener { chooseRestMode() }
@@ -308,7 +342,7 @@ class MainActivity : Activity() {
         outputBoostSlider = SeekBar(this).apply {
             max = OutputBoostProcessor.MAX_BOOST_DB / OutputBoostProcessor.STEP_DB
             progress = outputBoostDb / OutputBoostProcessor.STEP_DB
-            contentDescription = "出力ブーストを調整"
+            contentDescription = UiLanguage.text(this@MainActivity, "出力ブーストを調整")
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     if (!fromUser) return
@@ -328,7 +362,7 @@ class MainActivity : Activity() {
             "音割れを抑えるため、ピークが大きい場合は増幅を自動制限します。",
             12f, color = muted), 2)
 
-        startTest = Button(this).apply {
+        startTest = LocalizedButton(this).apply {
             text = "楽譜をテスト音で再生"
             isAllCaps = false
             visibility = View.GONE
@@ -339,13 +373,13 @@ class MainActivity : Activity() {
             }
         }
         add(root, label("スマホで使う（スピーカー・イヤホン出力）", 17f, true), 20)
-        startVoice = Button(this).apply {
+        startVoice = LocalizedButton(this).apply {
             text = "マイク入力を音程変換して再生"
             isAllCaps = false
             setOnClickListener { toggleMicButton(OutputTarget.ANDROID, directMic = false) }
         }
         add(root, startVoice, 6)
-        startRawAndroid = Button(this).apply {
+        startRawAndroid = LocalizedButton(this).apply {
             text = "マイク入力をそのまま再生"
             isAllCaps = false
             setOnClickListener { toggleMicButton(OutputTarget.ANDROID, directMic = true) }
@@ -359,22 +393,22 @@ class MainActivity : Activity() {
             setSingleLine(true)
             setText("127.0.0.1")
             textSize = 18f
-            hint = "PCの接続先 (例: 192.168.1.10)"
+            hint = UiLanguage.text(this@MainActivity, "PCの接続先 (例: 192.168.1.10)")
         }
         add(root, pcHostInput, 8)
-        startPcTest = Button(this).apply {
+        startPcTest = LocalizedButton(this).apply {
             text = "PCへテスト音を送る"
             isAllCaps = false
             visibility = View.GONE
             setOnClickListener { begin(voiceMode = false, target = OutputTarget.PC) }
         }
-        startPcVoice = Button(this).apply {
+        startPcVoice = LocalizedButton(this).apply {
             text = "マイク入力を音程変換してPCへ送る"
             isAllCaps = false
             setOnClickListener { toggleMicButton(OutputTarget.PC, directMic = false) }
         }
         add(root, startPcVoice, 9)
-        startRawPc = Button(this).apply {
+        startRawPc = LocalizedButton(this).apply {
             text = "マイク入力をそのままPCへ送る"
             isAllCaps = false
             setOnClickListener { toggleMicButton(OutputTarget.PC, directMic = true) }
@@ -389,6 +423,57 @@ class MainActivity : Activity() {
                 "スピーカーの音をマイクが拾うとハウリングするため、距離を離してください。" +
                 "アプリを離れると停止します。", 12f, color = muted
         ), 23)
+
+        // The last control in the scrolling main screen, using the same outlined
+        // selector style as the pitch conversion engine. All choices are persistent.
+        add(root, label("表示言語", 15f, true), 22)
+        val languageSelector = FrameLayout(this).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(7).toFloat()
+                setColor(Color.WHITE)
+                setStroke(dp(1), Color.rgb(137, 156, 184))
+            }
+        }
+        languageSpinner = Spinner(this).apply {
+            background = ColorDrawable(Color.TRANSPARENT)
+            minimumHeight = dp(50)
+            setPadding(dp(12), 0, dp(32), 0)
+            contentDescription = UiLanguage.text(this@MainActivity, "表示言語")
+            val names = listOf(UiLanguage.text(this@MainActivity, "自動（端末設定）"),
+                "日本語", "繁體中文", "English")
+            adapter = ArrayAdapter(this@MainActivity,
+                android.R.layout.simple_spinner_item, names).also {
+                    it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                }
+        }
+        languageSelector.addView(languageSpinner, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(50)))
+        languageSelector.addView(label("▾", 23f, color = blue).apply {
+            gravity = Gravity.CENTER
+            isClickable = false
+            isFocusable = false
+        }, FrameLayout.LayoutParams(dp(32), ViewGroup.LayoutParams.MATCH_PARENT,
+            Gravity.END or Gravity.CENTER_VERTICAL))
+        add(root, languageSelector, 5)
+        languageSpinner.setSelection(UiLanguage.choices.indexOf(UiLanguage.selected(this)).coerceAtLeast(0))
+        languageSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?,
+                                        position: Int, id: Long) {
+                val newChoice = UiLanguage.choices.getOrNull(position) ?: return
+                if (newChoice == UiLanguage.selected(this@MainActivity)) return
+                if (active || stoppingAudio) {
+                    Toast.makeText(this@MainActivity,
+                        UiLanguage.text(this@MainActivity, "言語の切り替えは停止中のみ行えます"),
+                        Toast.LENGTH_SHORT).show()
+                    languageSpinner.setSelection(UiLanguage.choices.indexOf(UiLanguage.selected(this@MainActivity)))
+                    return
+                }
+                UiLanguage.save(this@MainActivity, newChoice)
+                recreate()
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) { }
+        }
     }
 
     private fun updateOutputBoostLabel() {
@@ -411,15 +496,15 @@ class MainActivity : Activity() {
         if (active) return
         val choices = RestPlaybackMode.entries.toTypedArray()
         AlertDialog.Builder(this)
-            .setTitle("休符の処理方法")
-            .setSingleChoiceItems(choices.map { it.caption }.toTypedArray(), restMode.ordinal) { dialog, index ->
+            .setTitle(UiLanguage.text(this, "休符の処理方法"))
+            .setSingleChoiceItems(choices.map { UiLanguage.text(this, it.caption) }.toTypedArray(), restMode.ordinal) { dialog, index ->
                 restMode = choices[index]
                 restModeButton.text = "休符：${restMode.caption} ▼"
                 getSharedPreferences("utamaru_audio_settings", MODE_PRIVATE)
                     .edit().putString("rest_playback_mode", restMode.name).apply()
                 dialog.dismiss()
             }
-            .setNegativeButton("キャンセル", null)
+            .setNegativeButton(UiLanguage.text(this, "キャンセル"), null)
             .show()
     }
 
@@ -464,7 +549,7 @@ class MainActivity : Activity() {
         loadedPresetBpm = item.bpm
         presetStore.markLastSlot(slot)
         refreshPresetButtons()
-        Toast.makeText(this, "${item.name}を読み込みました", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, UiLanguage.text(this, "${item.name}を読み込みました"), Toast.LENGTH_SHORT).show()
     }
 
     private fun hasUnsavedEdits(): Boolean {
@@ -478,15 +563,15 @@ class MainActivity : Activity() {
         if (active) return
         val item = presetStore.load(slot)
         if (item == null) {
-            Toast.makeText(this, "${slot + 1}番は未保存です。下の保存ボタンから登録できます", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, UiLanguage.text(this, "${slot + 1}番は未保存です。下の保存ボタンから登録できます"), Toast.LENGTH_LONG).show()
             return
         }
         if (hasUnsavedEdits()) {
             AlertDialog.Builder(this)
-                .setTitle("編集中の変更を破棄しますか？")
-                .setMessage("現在の楽譜やBPMには未保存の変更があります。${item.name}を読み込むと元に戻せません。")
-                .setNegativeButton("キャンセル", null)
-                .setPositiveButton("読み込む") { _, _ -> applyPreset(slot, item) }
+                .setTitle(UiLanguage.text(this, "編集中の変更を破棄しますか？"))
+                .setMessage(UiLanguage.text(this, "現在の楽譜やBPMには未保存の変更があります。${item.name}を読み込むと元に戻せません。"))
+                .setNegativeButton(UiLanguage.text(this, "キャンセル"), null)
+                .setPositiveButton(UiLanguage.text(this, "読み込む")) { _, _ -> applyPreset(slot, item) }
                 .show()
         } else applyPreset(slot, item)
     }
@@ -496,8 +581,8 @@ class MainActivity : Activity() {
         val score = try {
             ScoreParser.serialize(ScoreParser.parseCompleteMeasures(scoreInput.text.toString()))
         } catch (e: Exception) {
-            scoreInput.error = e.message
-            Toast.makeText(this, "楽譜の入力を確認してください", Toast.LENGTH_SHORT).show()
+            scoreInput.error = UiLanguage.text(this, e.message.orEmpty())
+            Toast.makeText(this, UiLanguage.text(this, "楽譜の入力を確認してください"), Toast.LENGTH_SHORT).show()
             return
         }
         val captions = Array(3) { index ->
@@ -505,9 +590,9 @@ class MainActivity : Activity() {
             "${index + 1}番：${existing?.name ?: "（未保存）"}"
         }
         AlertDialog.Builder(this)
-            .setTitle("保存先のプリセットを選択")
+            .setTitle(UiLanguage.text(this, "保存先のプリセットを選択"))
             .setItems(captions) { _, selected -> askPresetName(selected, score, currentBpm) }
-            .setNegativeButton("キャンセル", null)
+            .setNegativeButton(UiLanguage.text(this, "キャンセル"), null)
             .show()
     }
 
@@ -517,14 +602,14 @@ class MainActivity : Activity() {
             setSingleLine(true)
             setText(old?.name ?: "曲${slot + 1}")
             setSelectAllOnFocus(true)
-            hint = "曲名"
+            hint = UiLanguage.text(this@MainActivity, "曲名")
         }
         AlertDialog.Builder(this)
-            .setTitle("${slot + 1}番に${if (old == null) "保存" else "上書き保存"}")
-            .setMessage("曲名を入力してください。楽譜とBPMを一緒に保存します。")
+            .setTitle(UiLanguage.text(this, "${slot + 1}番に${if (old == null) "保存" else "上書き保存"}"))
+            .setMessage(UiLanguage.text(this, "曲名を入力してください。楽譜とBPMを一緒に保存します。"))
             .setView(nameInput)
-            .setNegativeButton("キャンセル", null)
-            .setPositiveButton("保存") { _, _ ->
+            .setNegativeButton(UiLanguage.text(this, "キャンセル"), null)
+            .setPositiveButton(UiLanguage.text(this, "保存")) { _, _ ->
                 val name = nameInput.text.toString().trim().take(24).ifBlank { "曲${slot + 1}" }
                 val stored = SavedScorePreset(name, score, bpm)
                 if (presetStore.save(slot, stored)) {
@@ -535,8 +620,8 @@ class MainActivity : Activity() {
                     loadedPresetScore = score
                     loadedPresetBpm = bpm
                     refreshPresetButtons()
-                    Toast.makeText(this, "${name}を${slot + 1}番に保存しました", Toast.LENGTH_LONG).show()
-                } else Toast.makeText(this, "保存できませんでした", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, UiLanguage.text(this, "${name}を${slot + 1}番に保存しました"), Toast.LENGTH_LONG).show()
+                } else Toast.makeText(this, UiLanguage.text(this, "保存できませんでした"), Toast.LENGTH_LONG).show()
             }.show()
     }
 
@@ -544,8 +629,8 @@ class MainActivity : Activity() {
         if (active) return
         val parsed = try { ScoreParser.parseCompleteMeasures(scoreInput.text.toString()) }
                      catch (e: Exception) {
-                         scoreInput.error = e.message
-                         Toast.makeText(this, "楽譜の文字入力を確認してください", Toast.LENGTH_SHORT).show()
+                         scoreInput.error = UiLanguage.text(this, e.message.orEmpty())
+                         Toast.makeText(this, UiLanguage.text(this, "楽譜の文字入力を確認してください"), Toast.LENGTH_SHORT).show()
                          return
                      }
         scoreEditor = PianoRollEditor(
@@ -578,10 +663,10 @@ class MainActivity : Activity() {
         // Detect attached outputs BEFORE opening a live feedback path.
         if (target == OutputTarget.ANDROID && !AudioOutputSafety.hasConnectedExternalOutput(this)) {
             AlertDialog.Builder(this)
-                .setTitle("ハウリングに注意")
-                .setMessage("外部スピーカーやイヤホンの接続が確認できません。スマホの内蔵スピーカーから出る音をマイクが拾うと、強いハウリングが起こる場合があります。音量を下げ、マイクとスピーカーを離してください。\n\nこのまま開始しますか？")
-                .setNegativeButton("キャンセル", null)
-                .setPositiveButton("注意して開始") { _, _ ->
+                .setTitle(UiLanguage.text(this, "ハウリングに注意"))
+                .setMessage(UiLanguage.text(this, "外部スピーカーやイヤホンの接続が確認できません。スマホの内蔵スピーカーから出る音をマイクが拾うと、強いハウリングが起こる場合があります。音量を下げ、マイクとスピーカーを離してください。\n\nこのまま開始しますか？"))
+                .setNegativeButton(UiLanguage.text(this, "キャンセル"), null)
+                .setPositiveButton(UiLanguage.text(this, "注意して開始")) { _, _ ->
                     speakerWarningShown = true
                     proceedMicStart(target, directMic)
                 }
@@ -608,7 +693,7 @@ class MainActivity : Activity() {
             val callback = pendingEditorMicPermission
             pendingEditorMicPermission = null
             if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) callback?.invoke()
-            else Toast.makeText(this, "楽譜録音にはマイクの許可が必要です", Toast.LENGTH_LONG).show()
+            else Toast.makeText(this, UiLanguage.text(this, "楽譜録音にはマイクの許可が必要です"), Toast.LENGTH_LONG).show()
             return
         }
         if (requestCode == 100 && pendingMicStart) {
@@ -626,7 +711,7 @@ class MainActivity : Activity() {
         // 生マイクは楽譜入力やBPMに依存しない。楽譜が編集中でも利用可能。
         val score = if (directMic) emptyList() else try { ScoreParser.parseCompleteMeasures(scoreInput.text.toString()) }
                     catch (e: Exception) {
-                        scoreInput.error = e.message
+                        scoreInput.error = UiLanguage.text(this, e.message.orEmpty())
                         return
                     }
         val bpm = currentBpm
@@ -648,11 +733,11 @@ class MainActivity : Activity() {
             if (target == OutputTarget.PC) speakerWarningShown = false
             lastAudioError = null
             info.text = if (directMic) "生マイクを起動中…（音程変換・ノイズゲートなし）" else
-                "起動中…  |  ${score.size}音  |  $bpm BPM  |  音質: ${voiceEngine.caption}" +
-                if (voiceMode) "  |  範囲${pitchRange.minimum}〜${pitchRange.maximum}倍" else ""
+                UiLanguage.text(this, "起動中…  |  ${score.size}音  |  $bpm BPM  |  音質: ${UiLanguage.text(this, voiceEngine.caption)}") +
+                if (voiceMode) UiLanguage.text(this, "  |  範囲${pitchRange.minimum}〜${pitchRange.maximum}倍") else ""
             setRunning(true)
         } catch (e: Exception) {
-            info.text = e.message ?: "開始に失敗しました"
+            info.text = UiLanguage.text(this, e.message ?: "開始に失敗しました")
         }
     }
 
@@ -680,10 +765,10 @@ class MainActivity : Activity() {
             !speakerWarningShown && !isFinishing) {
             speakerWarningShown = true
             AlertDialog.Builder(this)
-                .setTitle("内蔵スピーカーへの出力を検出")
-                .setMessage("実際の音声出力先がスマホ内蔵スピーカーです。ハウリングする場合があります。音量を下げるか、外部出力へ切り替えてください。")
-                .setNegativeButton("停止する") { _, _ -> stopAudio() }
-                .setPositiveButton("続行する", null)
+                .setTitle(UiLanguage.text(this, "内蔵スピーカーへの出力を検出"))
+                .setMessage(UiLanguage.text(this, "実際の音声出力先がスマホ内蔵スピーカーです。ハウリングする場合があります。音量を下げるか、外部出力へ切り替えてください。"))
+                .setNegativeButton(UiLanguage.text(this, "停止する")) { _, _ -> stopAudio() }
+                .setPositiveButton(UiLanguage.text(this, "続行する"), null)
                 .show()
         }
     }
@@ -720,6 +805,7 @@ class MainActivity : Activity() {
         savePresetButton.isEnabled = !value
         if (::presetButtons.isInitialized) for (button in presetButtons) button.isEnabled = !value
         voiceEngineSpinner.isEnabled = !value
+        languageSpinner.isEnabled = !value
         noiseGateCheck.isEnabled = !value
         naturalVoiceCheck.isEnabled = !value &&
             voiceEngineSpinner.selectedItemPosition != VoiceEngine.RUBBER_BAND.ordinal

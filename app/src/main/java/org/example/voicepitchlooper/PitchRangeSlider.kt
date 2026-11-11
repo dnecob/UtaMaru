@@ -29,7 +29,7 @@ class PitchRangeSlider(context: Context) : View(context) {
     private fun levelY() = dp(37f)
 
     init {
-        contentDescription = "変換倍率の範囲を設定。左つまみは低音側、右つまみは高音側"
+        contentDescription = UiLanguage.text(context, "変換倍率の範囲を設定。左つまみは低音側、右つまみは高音側")
         isClickable = true
         setPadding(0, 0, 0, 0)
     }
@@ -77,8 +77,8 @@ class PitchRangeSlider(context: Context) : View(context) {
             ink.color = color
             canvas.drawCircle(cx, y, dp(10f), ink)
         }
-        txt(canvas, "低音側", (left + mid) * 0.5f, dp(14f), 12f, Color.rgb(23, 98, 196))
-        txt(canvas, "高音側", (mid + right) * 0.5f, dp(14f), 12f, Color.rgb(12, 139, 117))
+        txt(canvas, UiLanguage.text(context, "低音側"), (left + mid) * 0.5f, dp(14f), 12f, Color.rgb(23, 98, 196))
+        txt(canvas, UiLanguage.text(context, "高音側"), (mid + right) * 0.5f, dp(14f), 12f, Color.rgb(12, 139, 117))
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
