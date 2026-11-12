@@ -88,7 +88,7 @@ SDKのパスは各自の `local.properties` に設定します（Git管理対象
 ・ `SETUP_RUBBERBAND.bat` はソースが存在しない場合の再取得用で、通常のクローン後に毎回実行する必要はありません。<br>
 Androidアプリのネイティブビルドには同梱ソースの `single/RubberBandSingle.cpp` を利用します。
 
-`BUILD_UTAMARU_APK.bat` は **デバッグ署名のAPK** を作成します。Releasesに配布するAPKは、別途リリース署名してください。署名鍵とパスワードをGitHubにアップロードしないでください。
+`BUILD_UTAMARU_APK.bat` は **デバッグ署名のAPK** を作成します。
 
 ## ソースコード・ライセンス
 
