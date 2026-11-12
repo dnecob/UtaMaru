@@ -21,8 +21,7 @@ Development is focused on improving audio quality and stability.
 
 ## ダウンロード
 
-公開済みのAPKやWindowsReceiverの配布ファイルは、このリポジトリの **Releases** から入手してください。<br>
-Releasesに配布ファイルが表示されない場合は、まだ公開されていません。
+公開済みのAPKやWindowsReceiverの配布ファイルは、このリポジトリの **Releases** から入手してください。
 
 - Android：`UtaMaru.apk` インストール用ファイル<br>
 - Windows：`WindowsReceiver.zip` スマホをWindowsの仮想マイクとして使用する場合のみ。展開して使用します。
