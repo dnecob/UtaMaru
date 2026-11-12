@@ -38,3 +38,4 @@ google-services.json
 
 # Kotlin compiler cache
 .kotlin/
+/app/release/
