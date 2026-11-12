@@ -1,8 +1,9 @@
 # 唄まる -UtaMaru-
 
-### Sorry, It's Japanese-Only for Now...
-Support for additional languages is planned once the audio quality improvements have reached a satisfactory level.<br>
-For now, development is focused on improving sound quality and stability.
+### Supported Languages
+The app itself supports Japanese, Traditional Chinese, and English.<br>
+You can select your preferred language manually or use Auto to follow your device's language settings.<br>
+Development is focused on improving audio quality and stability.
 
 🎵楽譜で指定した音程へ、Androidスマートフォンのマイク入力音声をリアルタイムで変換・出力。<br>
 　普通に喋っているだけで歌っている様になるアプリです。
@@ -141,7 +142,7 @@ WindowsReceiverのライセンス・配布条件は別途確認が必要です�
 以下の文章と共にMIDIデータをAIへ渡すとAIがMIDIデータを唄まる用の楽譜(文字列)に変換してくれます。
 
 🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻🔻<br>
-添付したMIDIファイル（または楽譜画像）を解析して、以下の仕様に従って音符をテキストへ変換してください。<br>
+添付したMIDIファイルを解析して、以下の仕様に従って音符をテキストへ変換してください。<br>
 【変換ルール】<br>
 ベースパートを除外し、それ以外のメロディー、対旋律、伴奏などの音符を抽出してください。<br>
 複数の独立したパートがある場合は、混ぜずにパート別に出力してください。同じ音程・タイミングの重複トラックはまとめてください。<br>
