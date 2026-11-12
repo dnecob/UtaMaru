@@ -111,10 +111,10 @@
     <string name="ui_108">8拍倒數聲 → 麥克風錄音 → 逐拍轉換音符。支援60～500 BPM。</string>
     <string name="ui_109">將選取拍改為休止符</string>
     <string name="ui_110">插入／刪除拍子（移動後續音符）</string>
-    <string name="ui_111">插入休止符（後續音符後移1拍）</string>
+    <string name="ui_111">插入休止符\n（後續音符後移1拍）</string>
     <string name="ui_112">已插入休止符並於結尾增加1小節</string>
     <string name="ui_113">已插入休止符</string>
-    <string name="ui_114">刪除選取拍（後續音符前移）</string>
+    <string name="ui_114">刪除選取拍\n（後續音符前移）</string>
     <string name="ui_115">維持4/4：插入時優先使用結尾休止符，不足則增加1小節；刪除後以休止符補足結尾。</string>
     <string name="ui_116">新增／刪除小節（每小節4拍）</string>
     <string name="ui_117">在結尾新增1小節</string>
@@ -237,13 +237,13 @@
     <string name="ui_206">請輸入樂譜</string>
     <string name="ui_207">請至少輸入一個音符</string>
     <string name="ui_208">請至少放置一個音符</string>
-    <string name="ui_209">樂譜最多256拍</string>
-    <string name="ui_210">樂譜最多256個音符</string>
-    <string name="ui_211">最多256拍（64小節）</string>
+    <string name="ui_209">樂譜最多4096拍</string>
+    <string name="ui_210">樂譜最多4096個音符</string>
+    <string name="ui_211">最多4096拍（1024小節）</string>
     <string name="ui_212">不得少於2小節（8拍）</string>
     <string name="ui_213">沒有可移調的音符</string>
-    <string name="ui_214">無法插入休止符：已達64小節上限</string>
-    <string name="ui_215">最多256拍</string>
+    <string name="ui_214">無法插入休止符：已達1024小節上限</string>
+    <string name="ui_215">最多4096拍</string>
     <string name="ui_216">樂譜至少需要1拍</string>
     <string name="ui_217">請輸入電腦位址</string>
     <string name="ui_218">未知錯誤</string>
@@ -259,4 +259,5 @@
     <string name="ui_dynamic_033">移動{0}將超出C1～B6範圍，樂譜未變更。</string>
     <string name="ui_dynamic_034">麥克風讀取錯誤：{0}</string>
     <string name="ui_dynamic_035">喇叭輸出錯誤：{0}</string>
+    <string name="ui_224">未偵測到人聲時暫停樂譜</string>
 </resources>

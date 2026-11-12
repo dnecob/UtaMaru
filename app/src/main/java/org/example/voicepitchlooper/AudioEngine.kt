@@ -55,8 +55,9 @@ class AudioEngine(
               outputTarget: OutputTarget = OutputTarget.ANDROID, pcHost: String = "127.0.0.1",
               voiceEngine: VoiceEngine = VoiceEngine.STANDARD, noiseGateEnabled: Boolean = true,
               restMode: RestPlaybackMode = RestPlaybackMode.HOLD_LAST,
+              pauseScoreOnSilence: Boolean = true,
               maxPitchRatio: Double = 3.5, minPitchRatio: Double = 0.5,
-              nearUnityEnabled: Boolean = true, originalMonitor: Boolean = false,
+              nearUnityEnabled: Boolean = false, originalMonitor: Boolean = false,
               directMic: Boolean = false) {
         check(worker?.isAlive != true) { "音声処理の停止中です。もう一度試してください。" }
         require((notes.isNotEmpty() || (voiceMode && directMic)) && bpm in 30..500)
@@ -72,7 +73,7 @@ class AudioEngine(
         worker = Thread {
             try {
                 runAudio(notes, bpm, voiceMode, outputTarget, pcHost, voiceEngine,
-                    noiseGateEnabled, restMode, maxPitchRatio, minPitchRatio,
+                    noiseGateEnabled, restMode, pauseScoreOnSilence, maxPitchRatio, minPitchRatio,
                     nearUnityEnabled, originalMonitor, directMic)
             } catch (e: Exception) {
                 if (running) onError("${e.javaClass.simpleName}: ${e.message ?: "不明なエラー"}")
@@ -89,6 +90,7 @@ class AudioEngine(
     private fun runAudio(notes: List<ScoreNote>, bpm: Int, voiceMode: Boolean,
                          outputTarget: OutputTarget, pcHost: String, voiceEngine: VoiceEngine,
                          noiseGateEnabled: Boolean, restMode: RestPlaybackMode,
+                         pauseScoreOnSilence: Boolean,
                          maxPitchRatio: Double, minPitchRatio: Double,
                          nearUnityEnabled: Boolean, originalMonitor: Boolean,
                          directMic: Boolean) {
@@ -138,7 +140,8 @@ class AudioEngine(
                 )
                 check(record.state == AudioRecord.STATE_INITIALIZED) { "AudioRecord初期化に失敗" }
             }
-            // 生マイクでは音程検出・変換・ノイズゲート・楽譜処理を起動しない。
+            // 生マイクでは音程検出・変換・楽譜処理を起動しない。
+            // ノイズゲートだけは共通のON/OFF設定に従って使用する。
             val detector = if (voiceMode && !directMic) PitchDetector() else null
             val improvedShifter = if (voiceMode && !directMic && voiceEngine == VoiceEngine.IMPROVED)
                 PitchShifter(maxPitchRatio, minPitchRatio) else null
@@ -147,7 +150,16 @@ class AudioEngine(
             if (voiceMode && !directMic && voiceEngine == VoiceEngine.RUBBER_BAND) {
                 rubberShifter = RubberBandNative(RATE)
             }
-            val gate = if (voiceMode && !directMic && noiseGateEnabled) VoiceNoiseGate() else null
+            // Raw microphone uses the same output noise gate, with energy-only
+            // voice activity detection (no pitch detection or pitch shifting).
+            val gate = if (voiceMode && noiseGateEnabled) VoiceNoiseGate() else null
+            // Voice activity is reused from the normal noise gate when enabled.
+            // Otherwise keep a lightweight, independent input-level detector.
+            // This is separate from output muting: pausing the score must work
+            // even if "noise suppression when silent" is switched off.
+            val scoreActivityDetector = if (voiceMode && !directMic && pauseScoreOnSilence && gate == null)
+                VoiceNoiseGate() else null
+            val pauseScoreClock = voiceMode && !directMic && pauseScoreOnSilence
             // Wet/dry latency is known to be 8192 samples in the two Kotlin
             // shifters. Rubber Band has its own variable internal delay.
             val naturalBypass = if (voiceMode && !directMic && voiceEngine != VoiceEngine.RUBBER_BAND)
@@ -165,6 +177,10 @@ class AudioEngine(
             var lastPitchNs = 0L
             var lastRatio = 1.0
             var sampleCount = 0L
+            // Separate from the microphone clock. Audio capture and output
+            // continue uninterrupted while the score clock is paused.
+            var scoreSampleCount = 0L
+            var scoreVoiceHoldFrames = 0  // 5 x 20ms quiet-frame grace period
             val testSynth = if (voiceMode) null else ScoreToneSynth(notes, bpm, RATE)
             // Advance the score using the actual PCM sample clock, not wall time.
             // This keeps all notes equally long even when audio/network writes block.
@@ -183,16 +199,6 @@ class AudioEngine(
                     count = FRAME
                 }
                 val now = System.nanoTime()
-                val step = if (directMic) 0L else (sampleCount / samplesPerStep).toLong()
-                val noteIndex = if (directMic) 0 else (step % notes.size).toInt()
-                val note = if (directMic) rawNote else notes[noteIndex]
-                val targetNote = if (directMic) note else heldNotes[noteIndex]
-                val restSelection = when {
-                    note.frequency != null || restMode == RestPlaybackMode.HOLD_LAST ->
-                        RestOutputMixer.Selection.SHIFTED
-                    restMode == RestPlaybackMode.RAW_VOICE -> RestOutputMixer.Selection.RAW
-                    else -> RestOutputMixer.Selection.SILENCE
-                }
                 if (voiceMode && !directMic && sampleCount % (FRAME * 3) == 0L) {
                     val candidate = detector!!.detect()
                     if (candidate != null && (lastPitch == null ||
@@ -203,11 +209,10 @@ class AudioEngine(
                     }
                 }
                 val trackedPitch = lastPitch?.takeIf { now - lastPitchNs < 400_000_000L }
-                // Determine the gate onset from microphone energy BEFORE the
-                // pitch shifter; waiting for the YIN pitch result clips the
-                // initial 0.1-0.2 seconds of many utterances.
+                // Input RMS is evaluated once per microphone frame. No extra
+                // pitch analysis is needed for the pause-on-silence option.
                 var inputRms = 0.0
-                if (voiceMode && gate != null && count > 0) {
+                if (voiceMode && (gate != null || pauseScoreClock) && count > 0) {
                     var power = 0.0
                     for (i in 0 until count) {
                         val sample = captured[i].toDouble() / 32768.0
@@ -216,6 +221,27 @@ class AudioEngine(
                     inputRms = kotlin.math.sqrt(power / count)
                 }
                 val earlyVoice = gate?.frameHasVoice(inputRms, trackedPitch != null) ?: false
+                // Keep the output gate independent from score activity. When
+                // the noise gate is OFF, enabling the score pause option must
+                // not alter the standard shifter's existing onset/mute logic.
+                val scoreVoice = if (!pauseScoreClock) false else if (gate != null) earlyVoice
+                    else scoreActivityDetector!!.frameHasVoice(inputRms, trackedPitch != null)
+                // Start advancing on the FIRST voice-bearing input frame, not
+                // after YIN settles. After voice ends, tolerate a brief gap
+                // so natural syllable transitions do not chatter the clock.
+                if (pauseScoreClock && scoreVoice) scoreVoiceHoldFrames = 5
+                val advanceScore = !pauseScoreClock || scoreVoiceHoldFrames > 0
+                val scoreClock = if (pauseScoreClock) scoreSampleCount else sampleCount
+                val step = if (directMic) 0L else (scoreClock / samplesPerStep).toLong()
+                val noteIndex = if (directMic) 0 else (step % notes.size).toInt()
+                val note = if (directMic) rawNote else notes[noteIndex]
+                val targetNote = if (directMic) note else heldNotes[noteIndex]
+                val restSelection = when {
+                    note.frequency != null || restMode == RestPlaybackMode.HOLD_LAST ->
+                        RestOutputMixer.Selection.SHIFTED
+                    restMode == RestPlaybackMode.RAW_VOICE -> RestOutputMixer.Selection.RAW
+                    else -> RestOutputMixer.Selection.SILENCE
+                }
                 val output: ShortArray
                 val ratio: Double?
                 if (voiceMode) {
@@ -250,13 +276,21 @@ class AudioEngine(
                         originalMonitor = originalMonitor)
                 }
                 var voiceDetected = false
-                if (voiceMode && !directMic) {
-                    var sumSquares = 0.0
-                    for (i in 0 until count) {
-                        val v = captured[i].toDouble() / 32768.0
-                        sumSquares += v * v
+                if (voiceMode && directMic) {
+                    // Process raw PCM in place before final gain and PC/Android output.
+                    // OFF leaves captured samples untouched, as in the old raw mode.
+                    gate?.process(output, count, voiceDetected = earlyVoice)
+                } else if (voiceMode) {
+                    // Reuse the RMS already calculated for the pause/noise
+                    // gate; only scan here when both options are disabled.
+                    val rms = if (gate != null || pauseScoreClock) inputRms else {
+                        var sumSquares = 0.0
+                        for (i in 0 until count) {
+                            val v = captured[i].toDouble() / 32768.0
+                            sumSquares += v * v
+                        }
+                        kotlin.math.sqrt(sumSquares / count)
                     }
-                    val rms = kotlin.math.sqrt(sumSquares / count)
                     voiceDetected = trackedPitch != null && rms >= 0.008
                     gate?.process(output, count, voiceDetected = earlyVoice)
                     // Preserve the old stricter pitch-qualified detection for
@@ -289,6 +323,10 @@ class AudioEngine(
                         val remainingMs = (targetNs - System.nanoTime()) / 1_000_000L
                         if (remainingMs > 0) Thread.sleep(remainingMs.coerceAtMost(100L))
                     }
+                }
+                if (pauseScoreClock) {
+                    if (advanceScore) scoreSampleCount += count
+                    if (!scoreVoice && scoreVoiceHoldFrames > 0) scoreVoiceHoldFrames--
                 }
                 sampleCount += count
                 if (now - lastStatusNs > 150_000_000L) {

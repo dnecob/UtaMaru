@@ -1,0 +1,24 @@
+UtaMaru WindowsReceiver - language update (Japanese / English)
+===========================================================
+
+This is an UPDATE-ONLY package. Extract it on top of the existing
+utamaru folder and overwrite the matching files. Do not run it separately;
+it does not contain VoicePitchReceiver_Win64.exe.
+
+Japanese:
+  このZIPは更新用差分です。既存のutamaruフォルダに上書きしてください。
+  単体では実行できません（受信EXEは含まれません）。
+  USBとWi-FiのBATを通常どおり起動してください。
+
+Updated: START_PC_USB.bat, START_PC_USB.ps1,
+         START_PC_WIFI.bat, CHECK_VBCABLE.ps1, ReadMe.txt
+Added:   LOCALIZATION.ps1, START_PC_WIFI.ps1, ReadMe_EN.txt,
+         LANGUAGE_UPDATE_NOTES.txt
+
+Language: Japanese Windows UI -> ja, all others -> en.
+Manual override in CMD: set UTAMARU_LANG=en  (or ja)
+This applies to the console launch scripts and their VB-CABLE checks.
+The receiver EXE continues to print its existing English diagnostic output.
+
+No Android source, receiver EXE, ADB, VB-CABLE, Gradle files or
+networking/audio implementation were modified in this update.

@@ -11,6 +11,9 @@ import kotlin.math.pow
 data class ScoreNote(val label: String, val frequency: Double?)
 
 object ScoreParser {
+    /** Single source of truth for the maximum score size: 1,024 complete 4/4 bars. */
+    const val MAX_BEATS = 4_096
+
     /** New input format: each literal space means exactly one silent beat. */
     fun parse(input: String): List<ScoreNote> = parseImpl(input, legacyWhitespace = false)
 
@@ -22,7 +25,7 @@ object ScoreParser {
      */
     fun completeMeasures(notes: List<ScoreNote>): List<ScoreNote> {
         val missing = (4 - notes.size % 4) % 4
-        require(notes.size + missing <= 256) { "音符は256拍以内にしてください" }
+        require(notes.size + missing <= MAX_BEATS) { "音符は4096拍以内にしてください" }
         return if (missing == 0) notes else
             notes + List(missing) { ScoreNote("休符", null) }
     }
@@ -86,7 +89,7 @@ object ScoreParser {
                 }
                 else -> error("使用できない文字: '${input[i]}'（位置 ${i + 1}）")
             }
-            require(result.size <= 256) { "音符は256個以内にしてください" }
+            require(result.size <= MAX_BEATS) { "音符は4096個以内にしてください" }
         }
         require(result.isNotEmpty()) { "楽譜を入力してください" }
         require(result.any { it.frequency != null }) { "音符を1つ以上入力してください" }

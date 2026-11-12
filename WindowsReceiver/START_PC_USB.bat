@@ -6,6 +6,11 @@ if not exist "%~dp0START_PC_USB.ps1" (
   pause
   exit /b 1
 )
+if not exist "%~dp0LOCALIZATION.ps1" (
+  echo ERROR: LOCALIZATION.ps1 is missing in WindowsReceiver.
+  pause
+  exit /b 1
+)
 if not exist "%~dp0CHECK_VBCABLE.ps1" (
   echo ERROR: CHECK_VBCABLE.ps1 is missing in WindowsReceiver.
   pause

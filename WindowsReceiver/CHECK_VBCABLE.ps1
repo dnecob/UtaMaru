@@ -2,6 +2,7 @@
 # No software is downloaded or installed by this helper.
 $ErrorActionPreference = 'Stop'
 $officialUrl = 'https://vb-audio.com/Cable/'
+. (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) 'LOCALIZATION.ps1')
 
 function Get-AudioEndpoints {
     # The PnP AudioEndpoint class contains Windows playback and recording devices.
@@ -49,9 +50,9 @@ function Test-VbCable {
 function Copy-OfficialUrl {
     try {
         Set-Clipboard -Value $officialUrl -ErrorAction Stop
-        Write-Host '公式URLをコピーしました。' -ForegroundColor Green
+        Write-Host (T 'vbc_copy_ok') -ForegroundColor Green
     } catch {
-        Write-Host 'URLをコピーできませんでした。表示されているURLを手動でコピーしてください。' -ForegroundColor Yellow
+        Write-Host (T 'copy_url_fallback') -ForegroundColor Yellow
     }
 }
 
@@ -59,54 +60,54 @@ function Open-OfficialUrl {
     try {
         # Open the fixed official URL only after the user explicitly selects it.
         Start-Process -FilePath $officialUrl -ErrorAction Stop
-        Write-Host '公式ページをブラウザで開きました。' -ForegroundColor Green
+        Write-Host (T 'vbc_open_ok') -ForegroundColor Green
     } catch {
-        Write-Host "ブラウザを起動できませんでした: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host ((T 'open_browser_failed') -f $_.Exception.Message) -ForegroundColor Yellow
         Write-Host "URL: $officialUrl"
     }
 }
 
 Write-Host ''
-Write-Host '--- VB-CABLE チェック ---'
+Write-Host (T 'vbc_title')
 while ($true) {
     $test = Test-VbCable
     if ($test.State -eq 'Ready') {
-        Write-Host 'VB-CABLEの再生・録音デバイスを確認しました。' -ForegroundColor Green
-        Write-Host '  再生先: CABLE Input / マイク入力: CABLE Output'
+        Write-Host (T 'vbc_ready') -ForegroundColor Green
+        Write-Host (T 'vbc_devices')
         Write-Host ''
         exit 0
     }
 
     Write-Host ''
     if ($test.State -eq 'Unknown') {
-        Write-Host 'Windowsの音声デバイス情報を取得できませんでした。' -ForegroundColor Yellow
+        Write-Host (T 'vbc_unknown') -ForegroundColor Yellow
     } else {
-        Write-Host 'VB-CABLEの必要な音声デバイスを両方とも確認できませんでした。' -ForegroundColor Yellow
-        $inputStatus = if ($test.InputFound) { '検出' } else { '未検出' }
-        $outputStatus = if ($test.OutputFound) { '検出' } else { '未検出' }
-        Write-Host "  CABLE Input (再生): $inputStatus"
-        Write-Host "  CABLE Output (録音): $outputStatus"
+        Write-Host (T 'vbc_missing') -ForegroundColor Yellow
+        $inputStatus = if ($test.InputFound) { T 'vbc_detected' } else { T 'vbc_not_detected' }
+        $outputStatus = if ($test.OutputFound) { T 'vbc_detected' } else { T 'vbc_not_detected' }
+        Write-Host ((T 'vbc_input_status') -f $inputStatus)
+        Write-Host ((T 'vbc_output_status') -f $outputStatus)
     }
-    Write-Host '未インストール、再起動待ち、デバイス無効化、名称変更などの可能性があります。'
-    Write-Host 'Windowsの「設定 → システム → サウンド」でも確認できます。'
+    Write-Host (T 'vbc_possible_causes')
+    Write-Host (T 'vbc_check_settings')
     Write-Host ''
-    Write-Host 'VB-CABLE公式ダウンロード先:' -ForegroundColor Cyan
+    Write-Host (T 'vbc_download') -ForegroundColor Cyan
     Write-Host "  $officialUrl"
-    Write-Host '  [1] VB-CABLE公式URLをコピー'
-    Write-Host '  [2] VB-CABLE公式サイトをブラウザで開く'
-    Write-Host '  [3] 再確認（インストール・再起動後など）'
-    Write-Host '  [4] Windowsで確認済みなので、そのまま続行'
-    Write-Host '  [0] 終了'
-    $choice = ([string](Read-Host '番号を入力')).Trim()
+    Write-Host (T 'vbc_option1')
+    Write-Host (T 'vbc_option2')
+    Write-Host (T 'vbc_option3')
+    Write-Host (T 'vbc_option4')
+    Write-Host (T 'option_exit')
+    $choice = ([string](Read-Host (T 'prompt_number'))).Trim()
     switch ($choice) {
         '1' { Copy-OfficialUrl }
         '2' { Open-OfficialUrl }
         '3' { continue }
         '4' {
-            Write-Host '手動確認として続行します。CABLE Outputをマイクに指定してください。' -ForegroundColor Yellow
+            Write-Host (T 'vbc_manual_continue') -ForegroundColor Yellow
             exit 0
         }
         '0' { exit 1 }
-        default { Write-Host '0、1、2、3、4 のいずれかを入力してください。' -ForegroundColor Yellow }
+        default { Write-Host (T 'vbc_invalid') -ForegroundColor Yellow }
     }
 }

@@ -5,7 +5,7 @@ class ScoreEditorModel(source: List<ScoreNote>) {
     private val items = source.toMutableList()
 
     init {
-        require(items.isNotEmpty() && items.size <= 256)
+        require(items.isNotEmpty() && items.size <= ScoreParser.MAX_BEATS)
         // A three-beat pasted ending must still provide an editable fourth beat.
         // All later measure operations assume the model has complete 4/4 bars.
         while (items.size % 4 != 0) items.add(ScoreNote("休符", null))
@@ -52,20 +52,20 @@ class ScoreEditorModel(source: List<ScoreNote>) {
 
     /** Pad to a chosen number of beats without truncating an existing score. */
     fun ensureAtLeastBeats(beats: Int) {
-        require(beats in 1..256)
+        require(beats in 1..ScoreParser.MAX_BEATS)
         while (items.size < beats) items.add(ScoreNote("休符", null))
     }
 
     fun appendRests(count: Int) {
         require(count > 0)
-        check(items.size + count <= 256) { "音符は最大256拍（64小節）までです" }
+        check(items.size + count <= ScoreParser.MAX_BEATS) { "音符は最大4096拍（1024小節）までです" }
         repeat(count) { items.add(ScoreNote("休符", null)) }
     }
 
     /** Whole-measure insertion keeps 4/4 measure boundaries aligned. */
     fun insertRests(index: Int, count: Int) {
         require(count > 0 && count % 4 == 0 && index in 0..items.size)
-        check(items.size + count <= 256) { "音符は最大256拍（64小節）までです" }
+        check(items.size + count <= ScoreParser.MAX_BEATS) { "音符は最大4096拍（1024小節）までです" }
         repeat(count) { items.add(index, ScoreNote("休符", null)) }
     }
 
@@ -79,7 +79,7 @@ class ScoreEditorModel(source: List<ScoreNote>) {
 
     /** Restore a full editor snapshot, including trailing rests and exact note spelling. */
     fun restoreNotes(snapshot: List<ScoreNote>) {
-        require(snapshot.isNotEmpty() && snapshot.size <= 256)
+        require(snapshot.isNotEmpty() && snapshot.size <= ScoreParser.MAX_BEATS)
         items.clear()
         items.addAll(ScoreParser.completeMeasures(snapshot))
     }
@@ -133,8 +133,8 @@ class ScoreEditorModel(source: List<ScoreNote>) {
         require(selectedBeat in items.indices)
         val needNewMeasure = items.last().frequency != null
         if (needNewMeasure) {
-            check(items.size + 4 <= 256) {
-                "末尾に音符があり、64小節を超えるため休符を挿入できません"
+            check(items.size + 4 <= ScoreParser.MAX_BEATS) {
+                "末尾に音符があり、1024小節を超えるため休符を挿入できません"
             }
             appendRests(4)
         }
@@ -160,7 +160,7 @@ class ScoreEditorModel(source: List<ScoreNote>) {
     fun appendRest() = appendRests(1)
 
     fun insertRest(index: Int) {
-        check(items.size < 256) { "音符は最大256拍までです" }
+        check(items.size < ScoreParser.MAX_BEATS) { "音符は最大4096拍までです" }
         require(index in 0..items.size)
         items.add(index, ScoreNote("休符", null))
     }

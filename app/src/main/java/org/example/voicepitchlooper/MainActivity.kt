@@ -63,6 +63,7 @@ class MainActivity : Activity() {
     private var speakerWarningShown = false
     private lateinit var voiceEngineSpinner: Spinner
     private lateinit var languageSpinner: Spinner
+    private lateinit var pauseScoreOnSilenceCheck: CheckBox
     private lateinit var noiseGateCheck: CheckBox
     private lateinit var naturalVoiceCheck: CheckBox
     private lateinit var originalMonitorCheck: CheckBox
@@ -92,6 +93,7 @@ class MainActivity : Activity() {
         outState.putString("ui_pc_host", pcHostInput.text.toString())
         outState.putInt("ui_bpm", currentBpm)
         outState.putInt("ui_engine", voiceEngineSpinner.selectedItemPosition)
+        outState.putBoolean("ui_pause_score_silence", pauseScoreOnSilenceCheck.isChecked)
         outState.putBoolean("ui_gate", noiseGateCheck.isChecked)
         outState.putBoolean("ui_original_monitor", originalMonitorCheck.isChecked)
         outState.putInt("ui_preset_slot", currentPresetSlot ?: -1)
@@ -139,14 +141,15 @@ class MainActivity : Activity() {
             .coerceIn(0, OutputBoostProcessor.MAX_BOOST_DB)
         engine.setOutputBoostDb(outputBoostDb)
         buildUi()
-        val savedEngine = audioSettings.getString("voice_engine", VoiceEngine.STANDARD.name)
+        val savedEngine = audioSettings.getString("voice_engine", VoiceEngine.IMPROVED.name)
         val index = VoiceEngine.entries.indexOfFirst { it.name == savedEngine }
-        voiceEngineSpinner.setSelection(index.coerceAtLeast(0))
+        voiceEngineSpinner.setSelection(index.takeIf { it >= 0 } ?: VoiceEngine.IMPROVED.ordinal)
         if (savedInstanceState == null) restoreLastPreset() else {
             scoreInput.setText(savedInstanceState.getString("ui_score_text", "D3A3F# GB3G3G"))
             pcHostInput.setText(savedInstanceState.getString("ui_pc_host", "127.0.0.1"))
             updateBpm(savedInstanceState.getInt("ui_bpm", 200))
-            voiceEngineSpinner.setSelection(savedInstanceState.getInt("ui_engine", 0))
+            voiceEngineSpinner.setSelection(savedInstanceState.getInt("ui_engine", VoiceEngine.IMPROVED.ordinal))
+            pauseScoreOnSilenceCheck.isChecked = savedInstanceState.getBoolean("ui_pause_score_silence", true)
             noiseGateCheck.isChecked = savedInstanceState.getBoolean("ui_gate", true)
             originalMonitorCheck.isChecked = savedInstanceState.getBoolean("ui_original_monitor", false)
             currentPresetSlot = savedInstanceState.getInt("ui_preset_slot", -1).takeIf { it >= 0 }
@@ -154,6 +157,14 @@ class MainActivity : Activity() {
             loadedPresetBpm = savedInstanceState.getInt("ui_loaded_bpm", -1).takeIf { it >= 0 }
             refreshPresetButtons()
         }
+    }
+
+    // Keep the footer in sync with the release version without changing it every update.
+    private fun displayVersion(): String {
+        @Suppress("DEPRECATION")
+        val version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
+        // Show the public version series (e.g. 0.8.7) without the internal build suffix.
+        return version.substringBefore('-').split('.').take(3).joinToString(".")
     }
 
     private fun dp(n: Int): Int = (resources.displayMetrics.density * n + 0.5f).toInt()
@@ -184,10 +195,10 @@ class MainActivity : Activity() {
         }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(22), dp(22), dp(22), dp(28))
+            setPadding(dp(22), dp(12), dp(22), dp(28))
             setOnApplyWindowInsetsListener { v, insets ->
                 val sys = insets.getInsets(WindowInsets.Type.systemBars())
-                v.setPadding(dp(22) + sys.left, dp(22) + sys.top,
+                v.setPadding(dp(22) + sys.left, dp(12) + sys.top,
                     dp(22) + sys.right, dp(28) + sys.bottom)
                 insets
             }
@@ -195,9 +206,7 @@ class MainActivity : Activity() {
         scroll.addView(root)
         setContentView(scroll)
 
-        add(root, label("唄まる -UtaMaru-", 27f, true))
-        add(root, label("Android 12+  |  PCマイク対応・試験版 0.8.7.21", 13f, color = muted), 4)
-        add(root, label("楽譜を編集", 17f, true), 28)
+        add(root, label("楽譜を編集", 17f, true))
         add(root, label("例：D3A3F# GB3G3G（空白=1拍休符、#=半音上、数字=オクターブ）", 13f, color = muted), 5)
         scoreInput = EditText(this).apply {
             setSingleLine(true)
@@ -273,17 +282,26 @@ class MainActivity : Activity() {
         add(root, engineSelector, 5)
         add(root, label("切り替えは停止中のみ。Rubber Bandは導入後、声のフォルマント維持を試せます。",
             12f, color = muted), 2)
+        val settings = getSharedPreferences("utamaru_audio_settings", MODE_PRIVATE)
+        pauseScoreOnSilenceCheck = LocalizedCheckBox(this).apply {
+            text = "音声がない間は楽譜を一時停止"
+            textSize = 14f
+            isChecked = settings.getBoolean("pause_score_on_silence", true)
+            setOnCheckedChangeListener { _, checked ->
+                settings.edit().putBoolean("pause_score_on_silence", checked).apply()
+            }
+        }
+        add(root, pauseScoreOnSilenceCheck, 8)
         noiseGateCheck = LocalizedCheckBox(this).apply {
             text = "音声がないときのノイズ抑制（推奨）"
             textSize = 14f
             isChecked = true
         }
         add(root, noiseGateCheck, 8)
-        val settings = getSharedPreferences("utamaru_audio_settings", MODE_PRIVATE)
         naturalVoiceCheck = LocalizedCheckBox(this).apply {
             text = "自然声優先（元の音程に近い声を再合成しない・試験）"
             textSize = 14f
-            isChecked = settings.getBoolean("near_unity_bypass", true)
+            isChecked = settings.getBoolean("near_unity_bypass", false)
             setOnCheckedChangeListener { _, checked ->
                 settings.edit().putBoolean("near_unity_bypass", checked).apply()
             }
@@ -474,6 +492,12 @@ class MainActivity : Activity() {
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) { }
         }
+        add(root, label("唄まる -UtaMaru- v${displayVersion()} Android12+ ©赫ねこ", 12f, color = muted).apply {
+            gravity = Gravity.CENTER_HORIZONTAL
+            maxLines = 1
+            // Fit one footer line even on narrower Android 12 devices.
+            setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1, TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM)
+        }, 18)
     }
 
     private fun updateOutputBoostLabel() {
@@ -720,6 +744,7 @@ class MainActivity : Activity() {
         try {
             engine.start(score, bpm, voiceMode, target, pcHostInput.text.toString().trim(),
                 voiceEngine = voiceEngine, noiseGateEnabled = gate, restMode = restMode,
+                pauseScoreOnSilence = pauseScoreOnSilenceCheck.isChecked,
                 maxPitchRatio = pitchRange.maximum, minPitchRatio = pitchRange.minimum,
                 nearUnityEnabled = naturalVoiceCheck.isChecked,
                 originalMonitor = originalMonitorCheck.isChecked, directMic = directMic)
@@ -746,7 +771,7 @@ class MainActivity : Activity() {
             if (n == null) "検出なし" else String.format(Locale.JAPAN, "%.1f Hz", n)
         val multiplier = s.ratio?.let { String.format(Locale.JAPAN, "%.3f 倍", it) } ?: "—"
         info.text = if (s.mode == "生マイク")
-            "動作中: 生マイク（音程変換なし）\n出力先: ${s.route}" else
+            "動作中: 生マイク（音程変換なし）\nノイズ抑制: ${s.noiseGate}\n出力先: ${s.route}" else
             "動作中: ${s.mode}\n" +
                 "現在の音符: ${s.note}\n" +
                 "目標音程: ${hz(s.targetHz)}\n" +
@@ -806,6 +831,7 @@ class MainActivity : Activity() {
         if (::presetButtons.isInitialized) for (button in presetButtons) button.isEnabled = !value
         voiceEngineSpinner.isEnabled = !value
         languageSpinner.isEnabled = !value
+        pauseScoreOnSilenceCheck.isEnabled = !value
         noiseGateCheck.isEnabled = !value
         naturalVoiceCheck.isEnabled = !value &&
             voiceEngineSpinner.selectedItemPosition != VoiceEngine.RUBBER_BAND.ordinal

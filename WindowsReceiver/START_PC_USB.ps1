@@ -1,19 +1,21 @@
 ﻿# UtaMaru WindowsReceiver - USB connection helper (Windows PowerShell 5.1)
 # ADB is NOT included. The user obtains Android SDK Platform-Tools from Google.
 $ErrorActionPreference = 'Stop'
-$platformToolsUrl = 'https://developer.android.com/tools/releases/platform-tools?hl=ja'
+$platformToolsUrl = 'https://developer.android.com/tools/releases/platform-tools'
 $receiverDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $receiverDir 'LOCALIZATION.ps1')
+if ($script:UtaLang -eq 'ja') { $platformToolsUrl += '?hl=ja' }
 $receiverExe = Join-Path $receiverDir 'VoicePitchReceiver_Win64.exe'
 $cacheFile = Join-Path $env:LOCALAPPDATA 'utamaru\WindowsReceiver\adb_path.txt'
 
 function Show-UsbDebugHelp {
     Write-Host ''
-    Write-Host '【スマホ側の設定（初回）】' -ForegroundColor Yellow
-    Write-Host '  1. 設定 → 端末情報など →「ビルド番号」を7回タップ。'
-    Write-Host '  2. 開発者向けオプションで「USBデバッグ」をONにする。'
-    Write-Host '  3. USBケーブルで接続し、スマホの「USBデバッグを許可しますか？」を承認。'
-    Write-Host '  ※ 項目名は機種によって異なります。自分のPCだけを許可してください。'
-    Write-Host '  ※ 充電専用ケーブルではADB通信できない場合があります。'
+    Write-Host (T 'usb_help_title') -ForegroundColor Yellow
+    Write-Host (T 'usb_help1')
+    Write-Host (T 'usb_help2')
+    Write-Host (T 'usb_help3')
+    Write-Host (T 'usb_help4')
+    Write-Host (T 'usb_help5')
     Write-Host ''
 }
 
@@ -64,7 +66,7 @@ function Save-Adb([string]$exe) {
         }
         Set-Content -LiteralPath $cacheFile -Value $exe -Encoding UTF8
     } catch {
-        Write-Host '※ ADBの保存先を記憶できませんでした。次回、再指定が必要になる場合があります。' -ForegroundColor Yellow
+        Write-Host (T 'adb_cache_warn') -ForegroundColor Yellow
     }
 }
 
@@ -72,14 +74,14 @@ function Select-AdbFolder {
     try {
         Add-Type -AssemblyName System.Windows.Forms
         $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-        $dialog.Description = 'adb.exe がある platform-tools フォルダを選択してください'
+        $dialog.Description = (T 'adb_folder_dialog')
         $dialog.ShowNewFolderButton = $false
         if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
             return $dialog.SelectedPath
         }
     } catch {
-        Write-Host 'フォルダ選択画面を開けませんでした。パスを直接入力してください。' -ForegroundColor Yellow
-        return (Read-Host 'platform-tools のフォルダパス（または adb.exe のフルパス）')
+        Write-Host (T 'adb_folder_fallback') -ForegroundColor Yellow
+        return (Read-Host (T 'adb_folder_prompt'))
     }
     return $null
 }
@@ -87,9 +89,9 @@ function Select-AdbFolder {
 function Copy-AdbDownloadUrl {
     try {
         Set-Clipboard -Value $platformToolsUrl -ErrorAction Stop
-        Write-Host 'ADB公式URLをコピーしました。' -ForegroundColor Green
+        Write-Host (T 'adb_copy_ok') -ForegroundColor Green
     } catch {
-        Write-Host 'コピーできませんでした。表示されているURLを手動でコピーしてください。' -ForegroundColor Yellow
+        Write-Host (T 'adb_copy_fail') -ForegroundColor Yellow
     }
 }
 
@@ -97,9 +99,9 @@ function Open-AdbDownloadUrl {
     try {
         # Open only the hard-coded Google download page, and only on explicit choice.
         Start-Process -FilePath $platformToolsUrl -ErrorAction Stop
-        Write-Host 'ADB公式ダウンロードページを開きました。' -ForegroundColor Green
+        Write-Host (T 'adb_open_ok') -ForegroundColor Green
     } catch {
-        Write-Host "ブラウザを起動できませんでした: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host ((T 'open_browser_failed') -f $_.Exception.Message) -ForegroundColor Yellow
         Write-Host "URL: $platformToolsUrl"
     }
 }
@@ -124,7 +126,7 @@ function Get-Adb {
     foreach ($candidate in ($candidates | Select-Object -Unique)) {
         $exe = Resolve-AdbPath $candidate
         if (Test-Adb $exe) {
-            Write-Host "ADBを確認しました: $exe" -ForegroundColor Green
+            Write-Host ((T 'adb_found') -f $exe) -ForegroundColor Green
             Save-Adb $exe
             return $exe
         }
@@ -132,13 +134,13 @@ function Get-Adb {
 
     while ($true) {
         Write-Host ''
-        Write-Host 'ADB（Android SDK Platform-Tools）が見つかりません。' -ForegroundColor Yellow
-        Write-Host "公式ダウンロード先: $platformToolsUrl" -ForegroundColor Cyan
-        Write-Host '  [1] ADBのフォルダを指定'
-        Write-Host '  [2] ADB公式URLをコピー'
-        Write-Host '  [3] ADB公式サイトをブラウザで開く'
-        Write-Host '  [0] 終了'
-        $answer = (Read-Host '番号を入力').Trim()
+        Write-Host (T 'adb_missing') -ForegroundColor Yellow
+        Write-Host ((T 'adb_official') -f $platformToolsUrl) -ForegroundColor Cyan
+        Write-Host (T 'adb_option1')
+        Write-Host (T 'adb_option2')
+        Write-Host (T 'adb_option3')
+        Write-Host (T 'option_exit')
+        $answer = (Read-Host (T 'prompt_number')).Trim()
         switch ($answer) {
             '1' {
                 $folder = Select-AdbFolder
@@ -146,15 +148,15 @@ function Get-Adb {
                 $exe = Resolve-AdbPath $folder
                 if (Test-Adb $exe) {
                     Save-Adb $exe
-                    Write-Host "ADBを確認しました: $exe" -ForegroundColor Green
+                    Write-Host ((T 'adb_found') -f $exe) -ForegroundColor Green
                     return $exe
                 }
-                Write-Host '指定先でADBを実行できませんでした。adb.exe と2つのAdbWin*.dllが同じフォルダにあるか確認してください。' -ForegroundColor Yellow
+                Write-Host (T 'adb_invalid_path') -ForegroundColor Yellow
             }
             '2' { Copy-AdbDownloadUrl }
             '3' { Open-AdbDownloadUrl }
             '0' { return $null }
-            default { Write-Host '0、1、2、3 のいずれかを入力してください。' }
+            default { Write-Host (T 'adb_invalid_choice') }
         }
     }
 }
@@ -162,12 +164,12 @@ function Get-Adb {
 function Get-AuthorizedDevice([string]$adb) {
     while ($true) {
         Write-Host ''
-        Write-Host 'スマホの接続状態を確認しています...'
+        Write-Host (T 'usb_checking_device')
         $result = Invoke-Adb $adb @('devices', '-l')
         $rawLines = $result.Lines
         $exitCode = $result.ExitCode
         if ($exitCode -ne 0) {
-            Write-Host 'ADBの接続状態取得に失敗しました。' -ForegroundColor Red
+            Write-Host (T 'adb_devices_failed') -ForegroundColor Red
             $rawLines | ForEach-Object { Write-Host "  $_" }
         }
 
@@ -182,22 +184,22 @@ function Get-AuthorizedDevice([string]$adb) {
         $waiting = @($found | Where-Object { $_.State -ne 'device' })
         foreach ($d in $waiting) {
             if ($d.State -eq 'unauthorized') {
-                Write-Host "未承認: $($d.Serial) → スマホ画面でUSBデバッグを許可してください。" -ForegroundColor Yellow
+                Write-Host ((T 'usb_unauthorized') -f $d.Serial) -ForegroundColor Yellow
             } else {
-                Write-Host "接続待ち: $($d.Serial) ($($d.State)) → USBを差し直すなどして再確認してください。" -ForegroundColor Yellow
+                Write-Host ((T 'usb_waiting') -f $d.Serial, $d.State) -ForegroundColor Yellow
             }
         }
         if ($ready.Count -eq 1) {
-            Write-Host "接続端末: $($ready[0].Serial)" -ForegroundColor Green
+            Write-Host ((T 'usb_device') -f $ready[0].Serial) -ForegroundColor Green
             return $ready[0].Serial
         }
         if ($ready.Count -gt 1) {
-            Write-Host '複数の端末が接続されています。使用する端末を選んでください。' -ForegroundColor Yellow
+            Write-Host (T 'usb_multiple') -ForegroundColor Yellow
             for ($i = 0; $i -lt $ready.Count; $i++) {
                 Write-Host "  [$($i + 1)] $($ready[$i].Serial)"
             }
-            Write-Host '  [R] 再検索    [0] 終了'
-            $choice = (Read-Host '番号を入力').Trim()
+            Write-Host (T 'usb_retry_exit')
+            $choice = (Read-Host (T 'prompt_number')).Trim()
             if ($choice -eq '0') { return $null }
             if ($choice -match '^[Rr]$') { continue }
             if ($choice -match '^\d+$') {
@@ -209,30 +211,30 @@ function Get-AuthorizedDevice([string]$adb) {
                     }
                 }
             }
-            Write-Host '選択が無効です。'
+            Write-Host (T 'usb_invalid_select')
             continue
         }
         if ($ready.Count -eq 0) {
-            Write-Host 'USBデバッグで接続済みのスマホが見つかりません。' -ForegroundColor Yellow
+            Write-Host (T 'usb_none') -ForegroundColor Yellow
             Show-UsbDebugHelp
         }
-        Write-Host '  [Enter] 再確認    [0] 終了'
-        $answer = Read-Host '操作'
+        Write-Host (T 'usb_enter_exit')
+        $answer = Read-Host (T 'usb_prompt_action')
         if ($answer -eq '0') { return $null }
     }
 }
 
 Write-Host '========================================================='
-Write-Host ' 唄まる -UtaMaru-  Windows PCマイク / USB接続'
+Write-Host (T 'usb_header')
 Write-Host '========================================================='
 Write-Host ''
-Write-Host '必要: VB-CABLE、Google SDK Platform-Tools（ADB）、USBデバッグ'
-Write-Host '※ ADBは同梱されていません。公式サイトから取得してください。'
+Write-Host (T 'usb_require')
+Write-Host (T 'usb_adb_external')
 Write-Host ''
 
 if (-not (Test-Path -LiteralPath $receiverExe -PathType Leaf)) {
-    Write-Host 'ERROR: VoicePitchReceiver_Win64.exe が見つかりません。' -ForegroundColor Red
-    Write-Host 'WindowsReceiverフォルダ内に受信プログラムを置いてください。'
+    Write-Host (T 'usb_exe_missing') -ForegroundColor Red
+    Write-Host (T 'usb_exe_place')
     exit 1
 }
 $adb = Get-Adb
@@ -241,26 +243,26 @@ $serial = Get-AuthorizedDevice $adb
 if (-not $serial) { exit 1 }
 
 Write-Host ''
-Write-Host "USB転送を設定しています: $serial / TCP 50005"
+Write-Host ((T 'usb_setting_reverse') -f $serial)
 $reverseResult = Invoke-Adb $adb @('-s', $serial, 'reverse', 'tcp:50005', 'tcp:50005')
 $reverseOutput = $reverseResult.Lines
 $reverseExitCode = $reverseResult.ExitCode
 if ($reverseExitCode -ne 0) {
-    Write-Host 'ADBポート転送に失敗しました。USBデバッグの許可と接続状態を確認してください。' -ForegroundColor Red
+    Write-Host (T 'usb_reverse_failed') -ForegroundColor Red
     $reverseOutput | ForEach-Object { Write-Host "  $_" }
     exit 1
 }
 
 Write-Host ''
-Write-Host 'USB接続の準備ができました。' -ForegroundColor Green
-Write-Host '  唄まるの接続先（PCホスト）: 127.0.0.1'
-Write-Host '  アプリで「マイク入力を音程変換してPCへ送る」'
-Write-Host '  または「マイク入力をそのままPCへ送る」を押します。'
+Write-Host (T 'usb_ready') -ForegroundColor Green
+Write-Host (T 'usb_host')
+Write-Host (T 'usb_app1')
+Write-Host (T 'usb_app2')
 Write-Host ''
-Write-Host '  WindowsReceiverは「CABLE Input」（再生側）へ音声を出します。'
-Write-Host '  Discordなどのマイク入力は「CABLE Output」（録音側）を選びます。'
+Write-Host (T 'usb_cable_input')
+Write-Host (T 'usb_cable_output')
 Write-Host ''
-Write-Host '受信ソフトを起動します。終了するとUSB転送設定も解除します。'
+Write-Host (T 'usb_launch_receiver')
 Write-Host ''
 try {
     & $receiverExe
@@ -269,8 +271,8 @@ try {
     $null = Invoke-Adb $adb @('-s', $serial, 'reverse', '--remove', 'tcp:50005')
 }
 if ($receiverExitCode -ne 0) {
-    Write-Host "WindowsReceiverがエラー終了しました (exit code: $receiverExitCode)。" -ForegroundColor Red
+    Write-Host ((T 'usb_receiver_failed') -f $receiverExitCode) -ForegroundColor Red
     exit 1
 }
-Write-Host 'WindowsReceiverを終了しました。'
+Write-Host (T 'usb_receiver_stopped')
 exit 0

@@ -110,10 +110,10 @@
     <string name="ui_108">音付き8カウント → マイク録音 → 拍ごとに音符化。60～500 BPM対応。</string>
     <string name="ui_109">選択拍を休符に変更</string>
     <string name="ui_110">1拍単位の挿入・削除（後ろの音符を移動）</string>
-    <string name="ui_111">休符を挿入（後ろを1拍ずらす）</string>
+    <string name="ui_111">休符を挿入\n（後ろを1拍ずらす）</string>
     <string name="ui_112">休符を挿入し、末尾に1小節追加しました</string>
     <string name="ui_113">休符を挿入しました</string>
-    <string name="ui_114">選択拍を削除（後ろを詰める）</string>
+    <string name="ui_114">選択拍を削除\n（後ろを詰める）</string>
     <string name="ui_115">※ 4/4を維持：挿入時は末尾の休符を利用し、足りなければ1小節追加。削除後の末尾は休符になります。</string>
     <string name="ui_116">小節の追加・削除（1小節＝4拍）</string>
     <string name="ui_117">末尾に小節追加</string>
@@ -236,13 +236,13 @@
     <string name="ui_206">楽譜を入力してください</string>
     <string name="ui_207">音符を1つ以上入力してください</string>
     <string name="ui_208">音符を1つ以上配置してください</string>
-    <string name="ui_209">音符は256拍以内にしてください</string>
-    <string name="ui_210">音符は256個以内にしてください</string>
-    <string name="ui_211">音符は最大256拍（64小節）までです</string>
+    <string name="ui_209">音符は4096拍以内にしてください</string>
+    <string name="ui_210">音符は4096個以内にしてください</string>
+    <string name="ui_211">音符は最大4096拍（1024小節）までです</string>
     <string name="ui_212">2小節（8拍）より短くできません</string>
     <string name="ui_213">移動する音符がありません</string>
-    <string name="ui_214">末尾に音符があり、64小節を超えるため休符を挿入できません</string>
-    <string name="ui_215">音符は最大256拍までです</string>
+    <string name="ui_214">末尾に音符があり、1024小節を超えるため休符を挿入できません</string>
+    <string name="ui_215">音符は最大4096拍までです</string>
     <string name="ui_216">楽譜は最低1拍必要です</string>
     <string name="ui_217">PCの接続先を入力してください</string>
     <string name="ui_218">不明なエラー</string>
@@ -258,4 +258,5 @@
     <string name="ui_dynamic_033">{0} を移動すると音域C1～B6を超えます。楽譜は変更していません</string>
     <string name="ui_dynamic_034">マイクの読み取りエラー: {0}</string>
     <string name="ui_dynamic_035">スピーカーへの出力エラー: {0}</string>
+    <string name="ui_224">音声がない間は楽譜を一時停止</string>
 </resources>

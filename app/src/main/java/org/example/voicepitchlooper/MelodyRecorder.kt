@@ -33,7 +33,7 @@ class MelodyRecorder(
 
     fun start() {
         check(worker == null) { "録音は既に開始されています" }
-        require(bpm in 60..500 && maxBeats in 1..256)
+        require(bpm in 60..500 && maxBeats in 1..ScoreParser.MAX_BEATS)
         running = true
         worker = Thread({ capture() }, "utamaru-melody-capture").apply { start() }
     }

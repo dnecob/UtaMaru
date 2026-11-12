@@ -30,7 +30,8 @@ object UiLanguage {
         if (sys.language == "en") return "en"
         if (sys.language == "zh" && (sys.script == "Hant" ||
                 sys.country in listOf("TW", "HK", "MO"))) return "zh-Hant"
-        return "ja"
+        // Use English when the device language is not supported.
+        return "en"
     }
 
     fun wrap(base: Context): Context {
@@ -59,6 +60,7 @@ object UiLanguage {
         "Rubber Band（未導入・セットアップが必要）" to R.string.ui_014,
         "切り替えは停止中のみ。Rubber Bandは導入後、声のフォルマント維持を試せます。" to R.string.ui_015,
         "音声がないときのノイズ抑制（推奨）" to R.string.ui_016,
+        "音声がない間は楽譜を一時停止" to R.string.ui_224,
         "自然声優先（元の音程に近い声を再合成しない・試験）" to R.string.ui_017,
         "元の音程との差が15セント以内なら原音を優先し、25セント以上で変換音へ戻します。標準・PSOLA風のみ。OFFでv0.8.6相当の音程変換と比較できます。" to R.string.ui_018,
         "原音モニター（変換を聴き比べる診断用）" to R.string.ui_019,
@@ -153,10 +155,10 @@ object UiLanguage {
         "音付き8カウント → マイク録音 → 拍ごとに音符化。60～500 BPM対応。" to R.string.ui_108,
         "選択拍を休符に変更" to R.string.ui_109,
         "1拍単位の挿入・削除（後ろの音符を移動）" to R.string.ui_110,
-        "休符を挿入（後ろを1拍ずらす）" to R.string.ui_111,
+        "休符を挿入\n（後ろを1拍ずらす）" to R.string.ui_111,
         "休符を挿入し、末尾に1小節追加しました" to R.string.ui_112,
         "休符を挿入しました" to R.string.ui_113,
-        "選択拍を削除（後ろを詰める）" to R.string.ui_114,
+        "選択拍を削除\n（後ろを詰める）" to R.string.ui_114,
         "※ 4/4を維持：挿入時は末尾の休符を利用し、足りなければ1小節追加。削除後の末尾は休符になります。" to R.string.ui_115,
         "小節の追加・削除（1小節＝4拍）" to R.string.ui_116,
         "末尾に小節追加" to R.string.ui_117,
@@ -251,13 +253,13 @@ object UiLanguage {
         "楽譜を入力してください" to R.string.ui_206,
         "音符を1つ以上入力してください" to R.string.ui_207,
         "音符を1つ以上配置してください" to R.string.ui_208,
-        "音符は256拍以内にしてください" to R.string.ui_209,
-        "音符は256個以内にしてください" to R.string.ui_210,
-        "音符は最大256拍（64小節）までです" to R.string.ui_211,
+        "音符は4096拍以内にしてください" to R.string.ui_209,
+        "音符は4096個以内にしてください" to R.string.ui_210,
+        "音符は最大4096拍（1024小節）までです" to R.string.ui_211,
         "2小節（8拍）より短くできません" to R.string.ui_212,
         "移動する音符がありません" to R.string.ui_213,
-        "末尾に音符があり、64小節を超えるため休符を挿入できません" to R.string.ui_214,
-        "音符は最大256拍までです" to R.string.ui_215,
+        "末尾に音符があり、1024小節を超えるため休符を挿入できません" to R.string.ui_214,
+        "音符は最大4096拍までです" to R.string.ui_215,
         "楽譜は最低1拍必要です" to R.string.ui_216,
         "PCの接続先を入力してください" to R.string.ui_217,
         "不明なエラー" to R.string.ui_218,

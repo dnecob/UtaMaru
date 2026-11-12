@@ -99,11 +99,11 @@ class PianoRollEditor(
             val capture = recorder ?: return
             if (closed) return
             val timeBeats = capture.progressedBeats
-            val cursor = (recordStartBeat + timeBeats.toInt()).coerceIn(0, 255)
+            val cursor = (recordStartBeat + timeBeats.toInt()).coerceIn(0, ScoreParser.MAX_BEATS - 1)
             var enlarged = false
-            while (cursor >= model.size && model.size < 256) {
+            while (cursor >= model.size && model.size < ScoreParser.MAX_BEATS) {
                 commitRecordingSnapshot()
-                model.appendRests(minOf(4, 256 - model.size))
+                model.appendRests(minOf(4, ScoreParser.MAX_BEATS - model.size))
                 enlarged = true
             }
             if (enlarged) {
@@ -184,6 +184,15 @@ class PianoRollEditor(
     private fun button(value: String, f: () -> Unit) = LocalizedButton(activity).apply {
         text = value; isAllCaps = false; setOnClickListener { f() }
         editButtons.add(this)
+    }
+    // Keep insertion/deletion labels on exactly two lines, scaling text down on small screens.
+    private fun twoLineButton(value: String, f: () -> Unit): Button = button(value, f).apply {
+        gravity = Gravity.CENTER
+        setPadding(dp(2), 0, dp(2), 0)
+        maxLines = 2
+        setAutoSizeTextTypeUniformWithConfiguration(
+            9, 14, 1, android.util.TypedValue.COMPLEX_UNIT_SP
+        )
     }
     private fun row(vararg buttons: Button, height: Int = 40) = LinearLayout(activity).apply {
         orientation = LinearLayout.HORIZONTAL
@@ -372,17 +381,17 @@ class PianoRollEditor(
         val start = recordStartBeat
         val capture = MelodyRecorder(
             bpm = editorBpm,
-            maxBeats = 256 - start,
+            maxBeats = ScoreParser.MAX_BEATS - start,
             onBeat = { index, midi ->
                 activity.runOnUiThread {
                     if (closed || recorder !== captureRef) return@runOnUiThread
                     val target = start + index
-                    if (target in 0 until 256) {
+                    if (target in 0 until ScoreParser.MAX_BEATS) {
                         // Save only once, before the first recording edit (including auto-extend).
                         commitRecordingSnapshot()
                         // Append complete measures without truncating the existing score.
-                        while (target >= model.size && model.size < 256)
-                            model.appendRests(minOf(4, 256 - model.size))
+                        while (target >= model.size && model.size < ScoreParser.MAX_BEATS)
+                            model.appendRests(minOf(4, ScoreParser.MAX_BEATS - model.size))
                         if (midi == null) model.setRest(target)
                         else model.setPitch(target, midi % 12, midi / 12 - 1)
                         scoreView.invalidate()
@@ -661,7 +670,7 @@ class PianoRollEditor(
         ), 6)
         append(root, label("1拍単位の挿入・削除（後ろの音符を移動）", 13f, muted), 10)
         append(root, row(
-            button("休符を挿入（後ろを1拍ずらす）") {
+            twoLineButton("休符を挿入\n（後ろを1拍ずらす）") {
                 editWithUndo {
                     val extended = model.insertRestAndShift(selected)
                     preview.silence()
@@ -671,7 +680,7 @@ class PianoRollEditor(
                         Toast.LENGTH_SHORT).show()
                 }
             },
-            button("選択拍を削除（後ろを詰める）") {
+            twoLineButton("選択拍を削除\n（後ろを詰める）") {
                 editWithUndo {
                     model.deleteBeatAndCloseGap(selected)
                     preview.silence()
@@ -1099,7 +1108,14 @@ private class StaffScoreView(
         canvas.drawColor(Color.rgb(253, 254, 255))
         val cols = max(8, model.size)
         val selected = selectedBeat()
-        for (beat in 0 until cols) {
+        // HorizontalScrollView exposes only a small clip of the potentially 4096-beat
+        // score. Restrict all per-beat drawing to that clip so editor redraw remains
+        // proportional to the viewport rather than the complete song length.
+        val clip = canvas.clipBounds
+        val firstVisible = ((clip.left - labelWidth) / beatWidth).toInt().coerceIn(0, cols)
+        val lastVisible = (((clip.right - labelWidth) / beatWidth).toInt() + 2)
+            .coerceIn(firstVisible, cols)
+        for (beat in firstVisible until lastVisible) {
             val left = beatLeft(beat).toFloat()
             if (beat == selected) rect(canvas, left + d(1f), d(19f),
                 left + beatWidth - d(1f), scoreHeight - d(10f), Color.rgb(230, 240, 255))
@@ -1116,30 +1132,37 @@ private class StaffScoreView(
                 line(canvas, barX, bassTop, barX, bottomBass, gray, 1.35f)
             }
         }
-        val staffRight = beatLeft(model.size).toFloat() + d(8f)
-        for (row in 0..4) {
-            line(canvas, d(6f), trebleTop + row * staffGap, staffRight, trebleTop + row * staffGap, ink, 0.85f)
-            line(canvas, d(6f), bassTop + row * staffGap, staffRight, bassTop + row * staffGap, ink, 0.85f)
+        val staffLeft = max(d(6f), clip.left.toFloat())
+        val staffRight = minOf(beatLeft(model.size).toFloat() + d(8f), clip.right.toFloat())
+        if (staffLeft < staffRight) {
+            for (row in 0..4) {
+                line(canvas, staffLeft, trebleTop + row * staffGap, staffRight, trebleTop + row * staffGap, ink, 0.85f)
+                line(canvas, staffLeft, bassTop + row * staffGap, staffRight, bassTop + row * staffGap, ink, 0.85f)
+            }
         }
         // End-repeat barline (repeat from the beginning): two dots + thin/thick lines.
         // Space is reserved after the last note so the repeat sign isn't clipped.
         val endX = beatLeft(model.size).toFloat() + d(8f)
-        val thinX = endX - d(5f)
-        for ((top, bottom) in arrayOf(trebleTop to bottomTreble, bassTop to bottomBass)) {
-            line(canvas, thinX, top, thinX, bottom, ink, 1.1f)
-            line(canvas, endX, top, endX, bottom, ink, 3.2f)
-            paint.style = Paint.Style.FILL
-            paint.color = ink
-            val dotX = thinX - d(5.5f)
-            canvas.drawCircle(dotX, top + staffGap * 1.5f, d(1.7f), paint)
-            canvas.drawCircle(dotX, top + staffGap * 2.5f, d(1.7f), paint)
+        if (endX + d(2f) >= clip.left && endX - d(14f) <= clip.right) {
+            val thinX = endX - d(5f)
+            for ((top, bottom) in arrayOf(trebleTop to bottomTreble, bassTop to bottomBass)) {
+                line(canvas, thinX, top, thinX, bottom, ink, 1.1f)
+                line(canvas, endX, top, endX, bottom, ink, 3.2f)
+                paint.style = Paint.Style.FILL
+                paint.color = ink
+                val dotX = thinX - d(5.5f)
+                canvas.drawCircle(dotX, top + staffGap * 1.5f, d(1.7f), paint)
+                canvas.drawCircle(dotX, top + staffGap * 2.5f, d(1.7f), paint)
+            }
         }
-        // Clef labels: musical glyph plus fallback Japanese names.
-        text(canvas, "𝄞", d(16f), trebleTop + 3 * staffGap, 32f, ink)
-        text(canvas, "𝄢", d(16f), bassTop + 3 * staffGap, 28f, ink)
-        text(canvas, "4", d(31f), trebleTop + 1.5f * staffGap, 12f, ink)
-        text(canvas, "4", d(31f), trebleTop + 3.3f * staffGap, 12f, ink)
-        for (beat in 0 until model.size) {
+        // Clef labels exist only at the start of the scrollable score.
+        if (clip.left <= d(45f)) {
+            text(canvas, "𝄞", d(16f), trebleTop + 3 * staffGap, 32f, ink)
+            text(canvas, "𝄢", d(16f), bassTop + 3 * staffGap, 28f, ink)
+            text(canvas, "4", d(31f), trebleTop + 1.5f * staffGap, 12f, ink)
+            text(canvas, "4", d(31f), trebleTop + 3.3f * staffGap, 12f, ink)
+        }
+        for (beat in firstVisible until minOf(lastVisible, model.size)) {
             val x = beatLeft(beat) + beatWidth / 2f
             val warning = if (beat == overflowBeat) overflowDirection else 0
             drawNote(canvas, x, model.noteAt(beat), selected == beat, warning)
