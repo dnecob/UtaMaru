@@ -92,7 +92,7 @@ Androidアプリのネイティブビルドには同梱ソースの `single/Rubb
 
 ## ソースコード・ライセンス
 
-Copyright (C) 2026 赫ね工房
+Copyright (C) 2026 赫ねこ
 
 唄まる -UtaMaru- の独自ソースコードは **GNU General Public License version 2 or later（GPL-2.0-or-later）** で公開しています。<br>
 本アプリには **Rubber Band Library 4.0.0** が組み込まれており、GPL-2.0-or-laterの条件で再配布しています。
@@ -104,10 +104,8 @@ Copyright (C) 2026 赫ね工房
 本リポジトリにはRubber Bandのソースコード一式を含めています。<br>
 配布するAPKに対応するソースコードも提供します。
 
-※ WindowsReceiverについて
-
-WindowsReceiverの実行ファイルに対応するソースコードは、現在このリポジトリには含まれていません。<br>
-WindowsReceiverのライセンス・配布条件は別途確認が必要です。
+WindowsReceiverのソースコードは WindowsReceiver/src/main.go に含まれています。
+WindowsReceiverはGPL-2.0-or-laterで公開しています。ビルド手順およびライセンス情報は WindowsReceiver/SOURCE_AND_LICENSE.txt を参照してください。
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 ### 楽譜画像 ▷ 唄まる用楽譜
