@@ -21,11 +21,11 @@ Development is focused on improving audio quality and stability.
 
 ## ダウンロード
 
-公開済みのAPKやWindowsReceiverの配布ファイルは、このリポジトリの **Releases** から入手してください。<br>
-Releasesに配布ファイルが表示されない場合は、まだ公開されていません。
+📲[utamaru_v0.8.7.21.apk](https://github.com/dnecob/UtaMaru/releases/download/v0.8.7.21/utamaru_v0.8.7.21.apk)<br>
+💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.7.21/WindowsReceiver.zip)
 
-- Android：`UtaMaru.apk` インストール用ファイル<br>
-- Windows：`WindowsReceiver.zip` スマホをWindowsの仮想マイクとして使用する場合のみ。展開して使用します。
+WindowsReceiver.zipはスマホをマイクとしてWindows PCに接続する場合のみ必要。<br>
+WindowsReceiver.zip is only required if you want to use your smartphone as a microphone for your Windows PC.
 
 スマホ単体で使用する場合は**WindowsReceiver、ADB、VB-CABLEは必要ありません**。
 
