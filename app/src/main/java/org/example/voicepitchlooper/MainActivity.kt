@@ -23,6 +23,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.ArrayAdapter
 import android.widget.Spinner
+import android.widget.RadioGroup
+import android.widget.RadioButton
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -80,9 +82,10 @@ class MainActivity : Activity() {
     private var playingAndroidTest = false
     private var pendingMicStart = false
     private var lastAudioError: String? = null
-    private val ink = Color.rgb(22, 36, 59)
-    private val muted = Color.rgb(83, 99, 121)
-    private val blue = Color.rgb(36, 107, 224)
+    private val colors by lazy(LazyThreadSafetyMode.NONE) { UiTheme.palette(this) }
+    private val ink get() = colors.ink
+    private val muted get() = colors.muted
+    private val blue get() = colors.accent
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(UiLanguage.wrap(newBase))
@@ -105,6 +108,7 @@ class MainActivity : Activity() {
     override fun onRetainNonConfigurationInstance(): Any? = editorHistory
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(if (UiTheme.isDark(this)) R.style.AppThemeDark else R.style.AppTheme)
         super.onCreate(savedInstanceState)
         @Suppress("DEPRECATION")
         editorHistory = lastNonConfigurationInstance as? PianoRollEditor.HistoryCarry
@@ -183,14 +187,14 @@ class MainActivity : Activity() {
     }
 
     private fun buildUi() {
-        window.statusBarColor = Color.rgb(247, 249, 252)
-        window.navigationBarColor = Color.rgb(247, 249, 252)
+        window.statusBarColor = colors.background
+        window.navigationBarColor = colors.background
         @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
-            View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        window.decorView.systemUiVisibility = if (UiTheme.isDark(this)) 0 else
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
 
         val scroll = ScrollView(this).apply {
-            setBackgroundColor(Color.rgb(247, 249, 252))
+            setBackgroundColor(colors.background)
             isFillViewport = true
         }
         val root = LinearLayout(this).apply {
@@ -252,8 +256,8 @@ class MainActivity : Activity() {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = dp(7).toFloat()
-                setColor(Color.WHITE)
-                setStroke(dp(1), Color.rgb(137, 156, 184))
+                setColor(this@MainActivity.colors.selector)
+                setStroke(dp(1), this@MainActivity.colors.border)
             }
         }
         voiceEngineSpinner = Spinner(this).apply {
@@ -449,8 +453,8 @@ class MainActivity : Activity() {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = dp(7).toFloat()
-                setColor(Color.WHITE)
-                setStroke(dp(1), Color.rgb(137, 156, 184))
+                setColor(this@MainActivity.colors.selector)
+                setStroke(dp(1), this@MainActivity.colors.border)
             }
         }
         languageSpinner = Spinner(this).apply {
@@ -491,6 +495,70 @@ class MainActivity : Activity() {
                 recreate()
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) { }
+        }
+        // Three choices share one horizontal row; avoids a tall vertical theme menu.
+        add(root, label(getString(R.string.theme_setting), 15f, true), 16)
+        val themeGroup = RadioGroup(this).apply {
+            orientation = RadioGroup.HORIZONTAL
+            contentDescription = getString(R.string.theme_setting)
+        }
+        val themeButtons = UiTheme.choices.mapIndexed { index, mode ->
+            RadioButton(this).apply {
+                id = View.generateViewId()
+                text = getString(when (index) {
+                    0 -> R.string.theme_auto_short
+                    1 -> R.string.theme_light
+                    else -> R.string.theme_dark
+                })
+                // The full name is available to screen readers even though the button is short.
+                contentDescription = getString(when (index) {
+                    0 -> R.string.theme_auto
+                    1 -> R.string.theme_light
+                    else -> R.string.theme_dark
+                })
+                buttonDrawable = null
+                gravity = Gravity.CENTER
+                textSize = 14f
+                minHeight = dp(44)
+                setPadding(dp(4), 0, dp(4), 0)
+                isChecked = mode == UiTheme.selected(this@MainActivity)
+                themeGroup.addView(this, RadioGroup.LayoutParams(0, dp(44), 1f).apply {
+                    leftMargin = dp(2)
+                    rightMargin = dp(2)
+                })
+            }
+        }
+        fun styleThemeChoices() {
+            themeButtons.forEach { choice ->
+                val chosen = choice.isChecked
+                choice.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(7).toFloat()
+                    setColor(if (chosen) this@MainActivity.colors.accent else this@MainActivity.colors.selector)
+                    setStroke(dp(1), if (chosen) this@MainActivity.colors.accent else this@MainActivity.colors.border)
+                }
+                choice.setTextColor(if (chosen) {
+                    if (UiTheme.isDark(this)) colors.background else Color.WHITE
+                } else colors.ink)
+            }
+        }
+        styleThemeChoices()
+        add(root, themeGroup, 5)
+        themeGroup.setOnCheckedChangeListener { _, checkedId ->
+            val index = themeButtons.indexOfFirst { it.id == checkedId }
+            val next = UiTheme.choices.getOrNull(index) ?: return@setOnCheckedChangeListener
+            val current = UiTheme.selected(this@MainActivity)
+            if (next == current) return@setOnCheckedChangeListener
+            if (active || stoppingAudio) {
+                Toast.makeText(this@MainActivity, getString(R.string.theme_switch_stopped),
+                    Toast.LENGTH_SHORT).show()
+                val oldIndex = UiTheme.choices.indexOf(current)
+                if (oldIndex >= 0) themeGroup.check(themeButtons[oldIndex].id)
+                styleThemeChoices()
+                return@setOnCheckedChangeListener
+            }
+            UiTheme.save(this@MainActivity, next)
+            recreate()
         }
         add(root, label("唄まる -UtaMaru- v${displayVersion()} Android12+ ©赫ねこ", 12f, color = muted).apply {
             gravity = Gravity.CENTER_HORIZONTAL

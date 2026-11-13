@@ -173,9 +173,10 @@ class PianoRollEditor(
         playbackButton.text = "■ 再生停止"
         handler.post(playbackUiStep)
     }
-    private val ink = Color.rgb(27, 41, 62)
-    private val muted = Color.rgb(87, 101, 122)
-    private val blue = Color.rgb(38, 103, 211)
+    private val colors = UiTheme.palette(activity)
+    private val ink = colors.ink
+    private val muted = colors.muted
+    private val blue = colors.accent
     private val pitchNames = arrayOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
 
     private fun dp(v: Int) = (v * activity.resources.displayMetrics.density + 0.5f).toInt()
@@ -570,12 +571,12 @@ class PianoRollEditor(
         val pinnedScore = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(9), dp(1), dp(9), dp(2))
-            setBackgroundColor(Color.rgb(250, 251, 253))
+            setBackgroundColor(colors.surface)
         }
         val root = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(9), dp(6), dp(9), dp(13))
-            setBackgroundColor(Color.rgb(250, 251, 253))
+            setBackgroundColor(colors.surface)
         }
         val tempoRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -619,7 +620,7 @@ class PianoRollEditor(
         val scrollPanel = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(8), dp(1), dp(8), dp(2))
-            setBackgroundColor(Color.rgb(228, 239, 255))
+            setBackgroundColor(colors.panel)
         }
         scrollStatus = label("◀ 譜面の横移動 ▶", 13f, blue).apply {
             gravity = Gravity.CENTER
@@ -631,7 +632,7 @@ class PianoRollEditor(
             progress = 0
             progressTintList = android.content.res.ColorStateList.valueOf(blue)
             thumbTintList = android.content.res.ColorStateList.valueOf(blue)
-            progressBackgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(143, 167, 205))
+            progressBackgroundTintList = android.content.res.ColorStateList.valueOf(colors.track)
             setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(bar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
                     if (fromUser) timeline.scrollTo(progress, 0)
@@ -657,7 +658,7 @@ class PianoRollEditor(
             gravity = Gravity.CENTER
             setTypeface(typeface, Typeface.BOLD)
             visibility = View.GONE
-            setBackgroundColor(Color.rgb(228, 239, 255))
+            setBackgroundColor(colors.panel)
             contentDescription = UiLanguage.text(activity, "録音開始までの残りカウント")
         }
         append(root, countdownDisplay, 3)
@@ -850,7 +851,7 @@ class PianoRollEditor(
             isVerticalScrollBarEnabled = true
             addView(root)
         }
-        val surfaceColor = Color.rgb(250, 251, 253)
+        val surfaceColor = colors.surface
         val surface = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(surfaceColor)
@@ -866,7 +867,7 @@ class PianoRollEditor(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(5), dp(4), dp(5), dp(4))
-            setBackgroundColor(Color.rgb(235, 242, 252))
+            setBackgroundColor(colors.toolbar)
         }
         toolbar.addView(label("楽譜", 16f).apply {
             setTypeface(typeface, Typeface.BOLD)
@@ -909,7 +910,8 @@ class PianoRollEditor(
         surface.addView(scrolling, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
-        dialog = Dialog(activity, android.R.style.Theme_Material_Light_NoActionBar)
+        dialog = Dialog(activity, if (UiTheme.isDark(activity))
+            R.style.AppThemeDark else R.style.AppTheme)
         dialog.setContentView(surface)
         dialog.setOnDismissListener {
             closed = true
@@ -936,8 +938,8 @@ class PianoRollEditor(
             statusBarColor = surfaceColor
             navigationBarColor = surfaceColor
             @Suppress("DEPRECATION")
-            decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
-                View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            decorView.systemUiVisibility = if (UiTheme.isDark(activity)) 0 else
+                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
             setDecorFitsSystemWindows(false)
         }
         syncSelection()
@@ -988,11 +990,12 @@ private class StaffScoreView(
     // one half-line gap per diatonic step across the treble/bass boundary.
     private val bassTop = bottomTreble + 2 * staffGap
     private val bottomBass = bassTop + 4 * staffGap
-    private val ink = Color.rgb(38, 52, 73)
-    private val blue = Color.rgb(38, 103, 211)
+    private val colors = UiTheme.palette(activity)
+    private val ink = colors.ink
+    private val blue = colors.accent
     // Both out-of-range drag directions use the same red warning.
     private val red = Color.rgb(208, 49, 63)
-    private val gray = Color.rgb(104, 116, 134)
+    private val gray = colors.secondaryInk
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var downX = 0f
     private var downY = 0f
@@ -1105,7 +1108,7 @@ private class StaffScoreView(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.drawColor(Color.rgb(253, 254, 255))
+        canvas.drawColor(colors.staffBackground)
         val cols = max(8, model.size)
         val selected = selectedBeat()
         // HorizontalScrollView exposes only a small clip of the potentially 4096-beat
@@ -1118,7 +1121,7 @@ private class StaffScoreView(
         for (beat in firstVisible until lastVisible) {
             val left = beatLeft(beat).toFloat()
             if (beat == selected) rect(canvas, left + d(1f), d(19f),
-                left + beatWidth - d(1f), scoreHeight - d(10f), Color.rgb(230, 240, 255))
+                left + beatWidth - d(1f), scoreHeight - d(10f), colors.selection)
             if (beat % 4 == 0) text(canvas, "${beat / 4 + 1}", left + d(9f), d(14f), 9f, gray)
             if (beat < model.size) {
                 text(canvas, "${beat + 1}", left + beatWidth / 2f, d(23f), 10f, gray)

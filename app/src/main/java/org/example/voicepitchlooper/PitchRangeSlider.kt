@@ -17,6 +17,7 @@ class PitchRangeSlider(context: Context) : View(context) {
     var upper = 3.5; private set
     var onRangeChanged: ((Double, Double) -> Unit)? = null
     private val ink = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val colors = UiTheme.palette(context)
     private val density = resources.displayMetrics.density
     private var dragging = 0 // 1 = lower, 2 = upper
     private fun dp(n: Float) = n * density
@@ -64,21 +65,21 @@ class PitchRangeSlider(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val left = leftX(); val right = rightX(); val mid = midX(); val y = levelY()
-        drawLine(canvas, left, right, y, Color.rgb(183, 194, 209), 6f)
-        drawLine(canvas, lowX(), highX(), y, Color.rgb(36, 107, 224), 6f)
-        drawLine(canvas, mid, mid, y - dp(11f), Color.rgb(65, 79, 103), 2f)
-        txt(canvas, "0.3", left, y + dp(29f), 11f, Color.DKGRAY)
-        txt(canvas, "1.0", mid, y + dp(29f), 11f, Color.DKGRAY)
-        txt(canvas, "10.0", right, y + dp(29f), 11f, Color.DKGRAY)
-        for ((cx, color) in listOf(lowX() to Color.rgb(23, 98, 196),
-                                  highX() to Color.rgb(12, 139, 117))) {
-            ink.color = Color.WHITE
+        drawLine(canvas, left, right, y, colors.track, 6f)
+        drawLine(canvas, lowX(), highX(), y, colors.accent, 6f)
+        drawLine(canvas, mid, mid, y - dp(11f), colors.muted, 2f)
+        txt(canvas, "0.3", left, y + dp(29f), 11f, colors.muted)
+        txt(canvas, "1.0", mid, y + dp(29f), 11f, colors.muted)
+        txt(canvas, "10.0", right, y + dp(29f), 11f, colors.muted)
+        for ((cx, color) in listOf(lowX() to colors.low,
+                                  highX() to colors.high)) {
+            ink.color = colors.handleOutline
             canvas.drawCircle(cx, y, dp(13f), ink)
             ink.color = color
             canvas.drawCircle(cx, y, dp(10f), ink)
         }
-        txt(canvas, UiLanguage.text(context, "低音側"), (left + mid) * 0.5f, dp(14f), 12f, Color.rgb(23, 98, 196))
-        txt(canvas, UiLanguage.text(context, "高音側"), (mid + right) * 0.5f, dp(14f), 12f, Color.rgb(12, 139, 117))
+        txt(canvas, UiLanguage.text(context, "低音側"), (left + mid) * 0.5f, dp(14f), 12f, colors.low)
+        txt(canvas, UiLanguage.text(context, "高音側"), (mid + right) * 0.5f, dp(14f), 12f, colors.high)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

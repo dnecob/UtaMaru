@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">唄まる -UtaMaru-</string>
+    <string name="theme_setting">表示テーマ</string>
+    <string name="theme_auto_short">自動</string>
+    <string name="theme_auto">自動（端末設定）</string>
+    <string name="theme_light">ライト</string>
+    <string name="theme_dark">ダーク</string>
+    <string name="theme_switch_stopped">テーマの切り替えは停止中のみ行えます</string>
 </resources>

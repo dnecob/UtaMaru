@@ -260,4 +260,10 @@
     <string name="ui_dynamic_034">麥克風讀取錯誤：{0}</string>
     <string name="ui_dynamic_035">喇叭輸出錯誤：{0}</string>
     <string name="ui_224">未偵測到人聲時暫停樂譜</string>
+    <string name="theme_setting">顯示主題</string>
+    <string name="theme_auto_short">自動</string>
+    <string name="theme_auto">自動（依裝置設定）</string>
+    <string name="theme_light">淺色</string>
+    <string name="theme_dark">深色</string>
+    <string name="theme_switch_stopped">請先停止播放再切換主題。</string>
 </resources>

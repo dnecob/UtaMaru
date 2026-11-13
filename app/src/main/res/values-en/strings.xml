@@ -260,4 +260,10 @@
     <string name="ui_dynamic_034">Microphone read error: {0}</string>
     <string name="ui_dynamic_035">Speaker output error: {0}</string>
     <string name="ui_224">Pause score while no voice is detected</string>
+    <string name="theme_setting">Appearance</string>
+    <string name="theme_auto_short">Auto</string>
+    <string name="theme_auto">Automatic (device settings)</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_switch_stopped">Stop playback before changing the theme.</string>
 </resources>
