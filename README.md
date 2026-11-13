@@ -17,7 +17,7 @@ Development is focused on improving audio quality and stability.
 - 対応OS：**Android 12以降（API 31以上）**<br>
 - PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続
 
-広告無し・トラッカー無し。
+広告無し・トラッカー無し。<br>
 Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセスする事もありません。
 
 ⚠現在、音質・安定性の改善を優先して開発中です。⚠
