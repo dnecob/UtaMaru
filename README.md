@@ -29,6 +29,8 @@ WindowsReceiver.zip is only required if you want to use your smartphone as a mic
 
 スマホ単体で使用する場合は**WindowsReceiver、ADB、VB-CABLEは必要ありません**。
 
+各バージョンのアップデート内容はReleasesからご確認ください。
+
 ## スマホだけで使用する場合
 
 1. APKをAndroid 12以降の端末にインストールして起動し、マイクの使用を許可します。<br>
