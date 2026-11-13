@@ -17,6 +17,9 @@ Development is focused on improving audio quality and stability.
 - 対応OS：**Android 12以降（API 31以上）**<br>
 - PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続
 
+広告無し・トラッカー無し。
+Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセスする事もありません。
+
 ⚠現在、音質・安定性の改善を優先して開発中です。⚠
 
 ## ダウンロード
@@ -30,6 +33,9 @@ WindowsReceiver.zip is only required if you want to use your smartphone as a mic
 スマホ単体で使用する場合は**WindowsReceiver、ADB、VB-CABLEは必要ありません**。
 
 各バージョンのアップデート内容はReleasesからご確認ください。
+
+資金援助してくれるならこっちから購入してもらってもえぇんやで～🤗
+[itch.io](https://akanekoubou.itch.io/utamaru)
 
 ## スマホだけで使用する場合
 
