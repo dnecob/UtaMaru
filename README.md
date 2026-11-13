@@ -34,7 +34,7 @@ WindowsReceiver.zip is only required if you want to use your smartphone as a mic
 
 各バージョンのアップデート内容はReleasesからご確認ください。
 
-資金援助してくれたら開発のモチベーションが上がります🤗<br>
+資金援助してくれたら改良のモチベーションが上がります🤗<br>
 [https://akanekoubou.itch.io/utamaru](https://akanekoubou.itch.io/utamaru)<br>
 Optional donations are welcome!!
 
