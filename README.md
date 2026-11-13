@@ -18,7 +18,7 @@ Development is focused on improving audio quality and stability.
 - PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続
 
 広告無し・トラッカー無し。<br>
-Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセスもありません。
+Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセスもしません。
 
 ⚠現在、音質・安定性の改善を優先して開発中です。⚠
 
