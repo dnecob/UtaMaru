@@ -152,7 +152,15 @@ class AudioEngine(
             }
             // Raw microphone uses the same output noise gate, with energy-only
             // voice activity detection (no pitch detection or pitch shifting).
-            val gate = if (voiceMode && noiseGateEnabled) VoiceNoiseGate() else null
+            val gate = if (voiceMode && noiseGateEnabled) {
+                if (!directMic && voiceEngine == VoiceEngine.IMPROVED) {
+                    // PSOLA is delayed by 8192 samples (~171ms). Apply voice
+                    // activity at the corresponding output time and preserve
+                    // low-energy breathy endings.
+                    VoiceNoiseGate(holdMillis = 300, releaseMillis = 120.0,
+                        outputDelaySamples = 8192, preserveBreathyTail = true)
+                } else VoiceNoiseGate() // Standard and raw mic remain unchanged.
+            } else null
             // Voice activity is reused from the normal noise gate when enabled.
             // Otherwise keep a lightweight, independent input-level detector.
             // This is separate from output muting: pausing the score must work
@@ -250,7 +258,9 @@ class AudioEngine(
                     ratio = if (!directMic && trackedPitch != null && targetNote.frequency != null) lastRatio else null
                     output = if (directMic) captured else when (voiceEngine) {
                         VoiceEngine.IMPROVED -> improvedShifter!!.process(captured, count, lastRatio,
-                            mute = targetNote.frequency == null, inputFundamentalHz = trackedPitch)
+                            mute = targetNote.frequency == null,
+                            inputFundamentalHz = trackedPitch,
+                            suppressRawFallback = !nearUnityEnabled && !originalMonitor)
                         VoiceEngine.STANDARD -> previousShifter!!.process(captured, count, lastRatio,
                             // With the gate enabled, let clear speech onsets
                             // through even while YIN collects its first period.

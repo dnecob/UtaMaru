@@ -6,7 +6,7 @@
     <string name="ui_003">範例：D3A3F# GB3G3G（空格＝1拍休止符、#＝升半音、數字＝八度）</string>
     <string name="ui_004">♫ 使用五線譜編輯</string>
     <string name="ui_005">上下拖曳以半音移動，試聽1秒。初始2小節，可再新增。</string>
-    <string name="ui_006">樂譜預設（最多儲存3首）</string>
+    <string name="ui_006">樂譜預設</string>
     <string name="ui_007">點選已儲存的曲目即可載入</string>
     <string name="ui_008">將目前樂譜與BPM儲存為預設</string>
     <string name="ui_009">音高轉換引擎</string>
@@ -87,7 +87,7 @@
     <string name="ui_084">已停止，可以重新開始。</string>
     <string name="ui_085">停止中…</string>
     <string name="ui_086">發生音訊錯誤</string>
-    <string name="ui_087">▶ 播放樂譜</string>
+    <string name="ui_087">▶ 從選取位置播放</string>
     <string name="ui_088">■ 停止播放</string>
     <string name="ui_089">↶ 復原</string>
     <string name="ui_090">此狀態已存在於復原紀錄中</string>
@@ -97,11 +97,11 @@
     <string name="ui_094">請輸入60～500的數字</string>
     <string name="ui_095">■ 停止錄音</string>
     <string name="ui_096">● 從開頭錄音</string>
-    <string name="ui_097">● 從目前位置錄音</string>
+    <string name="ui_097">● 從選取位置錄音</string>
     <string name="ui_098">錄音完成。請確認內容並點選右上角「套用變更」以儲存。</string>
     <string name="ui_099">正在準備麥克風…</string>
     <string name="ui_100">從開頭錄音</string>
-    <string name="ui_101">從目前位置錄音</string>
+    <string name="ui_101">從選取位置錄音</string>
     <string name="ui_102">依BPM播放8拍倒數後，每拍覆寫一個音符。未錄製的拍子保持不變。可復原錄音結果。</string>
     <string name="ui_103">開始錄音</string>
     <string name="ui_104">已取消錄音</string>
@@ -109,7 +109,7 @@
     <string name="ui_106">哼唱／吹口哨產生樂譜（僅覆寫錄製的拍子）</string>
     <string name="ui_107">錄音開始前剩餘拍數</string>
     <string name="ui_108">8拍倒數聲 → 麥克風錄音 → 逐拍轉換音符。支援60～500 BPM。</string>
-    <string name="ui_109">將選取拍改為休止符</string>
+    <string name="ui_109">▶ 從開頭播放</string>
     <string name="ui_110">插入／刪除拍子（移動後續音符）</string>
     <string name="ui_111">插入休止符\n（後續音符後移1拍）</string>
     <string name="ui_112">已插入休止符並於結尾增加1小節</string>
@@ -120,10 +120,10 @@
     <string name="ui_117">在結尾新增1小節</string>
     <string name="ui_118">在結尾新增4小節</string>
     <string name="ui_119">在選取小節後插入1小節</string>
-    <string name="ui_120">刪除最後\n一小節</string>
+    <string name="ui_120">刪除選取\n小節</string>
     <string name="ui_121">至少需保留2小節</string>
-    <string name="ui_122">要刪除最後一小節嗎？</string>
-    <string name="ui_123">最後4拍包含音符。此操作可復原。</string>
+    <string name="ui_122">要刪除選取的小節嗎？</string>
+    <string name="ui_123">選取的小節包含音符。此操作可復原。</string>
     <string name="ui_124">刪除</string>
     <string name="ui_125">刪除所選小節\n之後的所有小節</string>
     <string name="ui_126">至少需保留2小節，請選擇第2小節之後的位置。</string>

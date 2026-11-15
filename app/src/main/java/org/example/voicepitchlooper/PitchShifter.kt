@@ -43,6 +43,8 @@ class PitchShifter(private val maxRatio: Double = 3.5,
     private var sourceMark = Double.NaN
     private var sourcePeriod = 220.0 // initial estimate ~218Hz
     private var outputHz = 220.0
+    // Analyze voicing at output time, ~171ms after microphone input.
+    private val voicedHistory = ByteArray(ringSize)
     private var voicedMix = 0.0
     private var muteGain = 0.0
     private var previousRatio = 1.0
@@ -103,7 +105,8 @@ class PitchShifter(private val maxRatio: Double = 3.5,
 
     fun process(
         samples: ShortArray, length: Int, targetRatio: Double,
-        mute: Boolean, inputFundamentalHz: Double? = null
+        mute: Boolean, inputFundamentalHz: Double? = null,
+        suppressRawFallback: Boolean = false
     ): ShortArray {
         require(length in 0..samples.size)
         val result = ShortArray(length)
@@ -119,11 +122,16 @@ class PitchShifter(private val maxRatio: Double = 3.5,
 
         for (i in 0 until length) {
             val t = cursor
-            input[(t.toInt() and mask)] = samples[i] / 32768.0f
+            val writeIndex = t.toInt() and mask
+            input[writeIndex] = samples[i] / 32768.0f
+            voicedHistory[writeIndex] = if (voiced != null) 1 else 0
 
             // Smooth note changes without resetting pulse phase. ~12ms time constant.
             outputHz += (wantedHz - outputHz) * 0.0017
-            voicedMix += ((if (voiced == null) 0.0 else 1.0) - voicedMix) * 0.0012
+            // Align pitch confidence with the output, not the current input.
+            val alignedVoiced = t >= delay &&
+                voicedHistory[((t - delay).toInt() and mask)].toInt() != 0
+            voicedMix += ((if (alignedVoiced) 1.0 else 0.0) - voicedMix) * 0.0012
             muteGain += ((if (mute) 0.0 else 1.0) - muteGain) * 0.004
 
             val usable = t > delay + 2400
@@ -141,10 +149,21 @@ class PitchShifter(private val maxRatio: Double = 3.5,
             }
             val idx = t.toInt() and mask
             val produced = if (weight[idx] > 1e-5f) sum[idx] / weight[idx] else 0f
-            // Bypass for non-periodic consonants / temporarily unpitched input.
-            val dry = if (t > delay) valueAt((t - delay).toInt()) else 0.0
-            val out = ((produced * voicedMix + dry * (1.0 - voicedMix)) * muteGain * 0.90)
-                .coerceIn(-1.0, 1.0)
+            // Natural Voice Priority OFF: use ONLY the shifted signal.
+            // A high-pass-filtered "breath" copy of the original signal is NOT
+            // safe: it still contains original-pitch harmonics, creating an
+            // audible second voice alongside the shifted PSOLA output.
+            // Breathy phrase endings are instead preserved by the delayed,
+            // slower-release output noise gate (VoiceNoiseGate), not dry mixing.
+            val mixed = if (suppressRawFallback) {
+                produced.toDouble()
+            } else {
+                // Preserve the previous optional original-voice behaviour
+                // when Natural Voice Priority / Original Monitor is enabled.
+                val dry = if (t >= delay) valueAt((t - delay).toInt()) else 0.0
+                produced * voicedMix + dry * (1.0 - voicedMix)
+            }
+            val out = (mixed * muteGain * 0.90).coerceIn(-1.0, 1.0)
             result[i] = (out * 32767.0).roundToInt().coerceIn(-32768, 32767).toShort()
             sum[idx] = 0f
             weight[idx] = 0f

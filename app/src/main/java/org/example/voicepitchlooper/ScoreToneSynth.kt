@@ -13,7 +13,8 @@ import kotlin.math.sin
 class ScoreToneSynth(
     notes: List<ScoreNote>,
     private val bpm: Int,
-    private val sampleRate: Int = 48_000
+    private val sampleRate: Int = 48_000,
+    initialBeat: Int = 0
 ) {
     private val score = notes.toList()
     private val beatDenominator = sampleRate * 60L
@@ -27,6 +28,10 @@ class ScoreToneSynth(
     init {
         require(score.isNotEmpty())
         require(bpm in 30..500 && sampleRate > 0)
+        require(initialBeat in score.indices)
+        // Seek to the first sample belonging to the requested beat. Using the
+        // same integer beat clock keeps timing aligned after seeking and looping.
+        samplePosition = (initialBeat.toLong() * beatDenominator + bpm - 1) / bpm
     }
 
     val sampleCount: Long get() = samplePosition

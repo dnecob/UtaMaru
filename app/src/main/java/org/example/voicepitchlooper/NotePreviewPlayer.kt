@@ -24,12 +24,12 @@ class NotePreviewPlayer(context: Context) : AutoCloseable {
     private var scoreSynth: ScoreToneSynth? = null
     @Volatile private var scoreBeat = 0
 
-    fun startScore(notes: List<ScoreNote>, bpm: Int) {
-        val synth = ScoreToneSynth(notes, bpm)
+    fun startScore(notes: List<ScoreNote>, bpm: Int, startBeat: Int = 0) {
+        val synth = ScoreToneSynth(notes, bpm, initialBeat = startBeat)
         synchronized(lock) {
             if (closed) return
             requestedHz = null
-            scoreBeat = 0
+            scoreBeat = startBeat
             scoreSynth = synth
             lock.notifyAll()
         }

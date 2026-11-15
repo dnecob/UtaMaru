@@ -168,7 +168,7 @@ class MainActivity : Activity() {
         @Suppress("DEPRECATION")
         val version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
         // Show the public version series (e.g. 0.8.7) without the internal build suffix.
-        return version.substringBefore('-').split('.').take(3).joinToString(".")
+        return version.substringBefore('-')
     }
 
     private fun dp(n: Int): Int = (resources.displayMetrics.density * n + 0.5f).toInt()
@@ -219,7 +219,7 @@ class MainActivity : Activity() {
             setSelectAllOnFocus(true)
             setPadding(dp(12), dp(9), dp(12), dp(9))
         }
-        add(root, scoreInput, 8)
+        add(root, scoreInput, 0)
         scoreEditorButton = LocalizedButton(this).apply {
             text = "♫ 五線譜で楽譜を編集"
             isAllCaps = false
@@ -228,8 +228,7 @@ class MainActivity : Activity() {
         add(root, scoreEditorButton, 7)
         bpmStatus = label("この楽譜：200 BPM（変更は五線譜編集画面）", 12f, color = muted)
         add(root, bpmStatus, 3)
-        add(root, label("縦ドラッグで半音移動・1秒試聴。初期2小節・小節追加可能。", 12f, color = muted), 3)
-        add(root, label("楽譜プリセット（3曲まで保存）", 16f, true), 16)
+        add(root, label("楽譜プリセット", 16f, true), 16)
         presetStatus = label("保存した曲をタップして呼び出せます", 12f, color = muted)
         add(root, presetStatus, 3)
         val presetRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -237,6 +236,12 @@ class MainActivity : Activity() {
             LocalizedButton(this).apply {
                 isAllCaps = false
                 textSize = 12f
+                // Preserve the button background and size, but maximize name text width.
+                setPadding(dp(2), 0, dp(2), 0)
+                setSingleLine(false)
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                gravity = Gravity.CENTER
                 setOnClickListener { recallPreset(index) }
                 presetRow.addView(this, LinearLayout.LayoutParams(0, dp(53), 1f))
             }
@@ -619,7 +624,7 @@ class MainActivity : Activity() {
         for (i in 0..2) {
             val stored = presetStore.load(i)
             val caption = stored?.name ?: "未保存"
-            presetButtons[i].text = "${i + 1}  ${if (i == currentPresetSlot) "●" else ""}\n${caption.take(10)}"
+            presetButtons[i].text = "${i + 1}  ${if (i == currentPresetSlot) "●" else ""}\n${caption}"
         }
         val slot = currentPresetSlot
         presetStatus.text = if (slot == null) "未選択の楽譜（保存先は下のボタンで指定）"

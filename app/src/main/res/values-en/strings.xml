@@ -6,7 +6,7 @@
     <string name="ui_003">Example: D3A3F# GB3G3G (space = 1-beat rest, # = sharp, number = octave)</string>
     <string name="ui_004">♫ Edit on staff</string>
     <string name="ui_005">Drag vertically by semitone; 1-second preview. Starts with 2 bars; you can add more.</string>
-    <string name="ui_006">Score presets (up to 3)</string>
+    <string name="ui_006">Score presets</string>
     <string name="ui_007">Tap a saved song to load it</string>
     <string name="ui_008">Save current score and BPM as a preset</string>
     <string name="ui_009">Pitch conversion engine</string>
@@ -87,7 +87,7 @@
     <string name="ui_084">Stopped. Ready to restart.</string>
     <string name="ui_085">Stopping…</string>
     <string name="ui_086">An audio error occurred</string>
-    <string name="ui_087">▶ Play score</string>
+    <string name="ui_087">▶ Play from cursor</string>
     <string name="ui_088">■ Stop playback</string>
     <string name="ui_089">↶ Undo</string>
     <string name="ui_090">This state is already in the undo history</string>
@@ -109,7 +109,7 @@
     <string name="ui_106">Create score by humming/whistling (overwrite recorded beats only)</string>
     <string name="ui_107">Beats until recording starts</string>
     <string name="ui_108">8-count metronome → record → detect notes by beat. Supports 60–500 BPM.</string>
-    <string name="ui_109">Make selected beat a rest</string>
+    <string name="ui_109">▶ Play from start</string>
     <string name="ui_110">Insert/delete beats (shift following notes)</string>
     <string name="ui_111">Insert rest\n(shift notes +1 beat)</string>
     <string name="ui_112">Inserted rest and added 1 bar at the end</string>
@@ -120,10 +120,10 @@
     <string name="ui_117">Add bar at end</string>
     <string name="ui_118">Add 4 bars at end</string>
     <string name="ui_119">Insert 1 bar after selection</string>
-    <string name="ui_120">Delete last\nbar</string>
+    <string name="ui_120">Delete selected\nbar</string>
     <string name="ui_121">At least 2 bars must remain</string>
-    <string name="ui_122">Delete the last bar?</string>
-    <string name="ui_123">The last 4 beats contain notes. You can undo this action.</string>
+    <string name="ui_122">Delete the selected bar?</string>
+    <string name="ui_123">The selected bar contains notes. You can undo this action.</string>
     <string name="ui_124">Delete</string>
     <string name="ui_125">Delete all bars\nafter selection</string>
     <string name="ui_126">At least 2 bars must remain. Select bar 2 or later.</string>

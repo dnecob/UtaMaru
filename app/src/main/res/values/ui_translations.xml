@@ -5,7 +5,7 @@
     <string name="ui_003">例：D3A3F# GB3G3G（空白=1拍休符、#=半音上、数字=オクターブ）</string>
     <string name="ui_004">♫ 五線譜で楽譜を編集</string>
     <string name="ui_005">縦ドラッグで半音移動・1秒試聴。初期2小節・小節追加可能。</string>
-    <string name="ui_006">楽譜プリセット（3曲まで保存）</string>
+    <string name="ui_006">楽譜プリセット</string>
     <string name="ui_007">保存した曲をタップして呼び出せます</string>
     <string name="ui_008">現在の楽譜とBPMをプリセットに保存</string>
     <string name="ui_009">音声変換エンジン</string>

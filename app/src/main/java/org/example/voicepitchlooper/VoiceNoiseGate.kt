@@ -8,18 +8,36 @@ import kotlin.math.roundToInt
  *
  * PitchDetector needs about 85ms of history and runs at 60ms intervals. Using
  * pitchDetected alone as a VAD can cut the initial consonant of each phrase.
- * This v0.8.1 variant allows a clear microphone-energy onset to open the gate
- * before pitch tracking settles, but retains pitch+RMS confirmation and the
- * previous 150ms hold and smooth sample-level attack/release.
+ * Energy onsets open the gate before pitch tracking settles. Optional
+ * softer continuation preserves breathy endings; optional activity delay
+ * aligns the gate with pitch-shifter output latency.
  *
  * This is NOT a tonal noise suppressor: any whine heard while speaking will
  * still be heard. An audio sample is needed before designing a notch/filter.
  */
-class VoiceNoiseGate {
+class VoiceNoiseGate(
+    holdMillis: Int = 150,
+    releaseMillis: Double = 21.0,
+    private val outputDelaySamples: Int = 0,
+    private val preserveBreathyTail: Boolean = false
+) {
+    init {
+        require(holdMillis in 0..2000)
+        require(releaseMillis.isFinite() && releaseMillis in 1.0..1000.0)
+        require(outputDelaySamples in 0..48000)
+    }
+
     private var gain = 0.0
     private var holdRemaining = 0
-    private val holdSamples = 7200 // 150ms at 48kHz
-    private var noiseFloor = 0.003  // conservative startup estimate
+    private val holdSamples = holdMillis * 48  // 48kHz
+    // Match the old 0.001 release coefficient when releaseMillis=21ms.
+    private val releaseCoefficient = if (releaseMillis == 21.0) 0.001
+        else 1.0 / (releaseMillis * 48.0)
+    private var noiseFloor = 0.003
+    private var recentStrongVoiceFrames = 0
+    private val delayedActivity = if (outputDelaySamples > 0)
+        ByteArray(outputDelaySamples + 1) else null
+    private var activityCursor = 0
 
     /**
      * Called once per 20ms input frame. Independently opening on an obvious
@@ -32,21 +50,40 @@ class VoiceNoiseGate {
         val pitchConfirmed = hasTrackedPitch && rms >= 0.008
         val energyThreshold = max(0.015, noiseFloor * 3.0)
         val onset = rms >= energyThreshold
-        if (!pitchConfirmed && !onset) {
+        val strongVoice = pitchConfirmed || onset
+        if (strongVoice) {
+            // 28 frames / 560ms of grace for a breathy phrase ending.
+            recentStrongVoiceFrames = 28
+        } else if (recentStrongVoiceFrames > 0) {
+            recentStrongVoiceFrames--
+        }
+        val breathyContinuation = preserveBreathyTail && !strongVoice &&
+            recentStrongVoiceFrames > 0 &&
+            rms >= max(0.0045, noiseFloor * 1.8)
+        if (!strongVoice && !breathyContinuation) {
             noiseFloor += (rms - noiseFloor) * 0.018
         }
-        return pitchConfirmed || onset
+        return strongVoice || breathyContinuation
     }
 
     fun process(output: ShortArray, length: Int, voiceDetected: Boolean) {
         require(length in 0..output.size)
-        if (voiceDetected) holdRemaining = holdSamples
+        // Raw-mic and Standard defaults keep their verified gate behaviour.
+        if (delayedActivity == null && voiceDetected) holdRemaining = holdSamples
         for (i in 0 until length) {
-            val open = holdRemaining > 0
+            val delayedVoice = if (delayedActivity == null) voiceDetected else {
+                val size = delayedActivity.size
+                delayedActivity[activityCursor] = if (voiceDetected) 1 else 0
+                val read = (activityCursor + 1) % size
+                val active = delayedActivity[read].toInt() != 0
+                activityCursor = read
+                active
+            }
+            if (delayedActivity != null && delayedVoice) holdRemaining = holdSamples
+            val open = holdRemaining > 0 || (holdSamples == 0 && delayedVoice)
             if (holdRemaining > 0) holdRemaining--
             val target = if (open) 1.0 else 0.0
-            // 2ms attack and ~21ms release, same envelopes as v0.8.0.
-            val coeff = if (open) 0.012 else 0.001
+            val coeff = if (open) 0.012 else releaseCoefficient
             gain += (target - gain) * coeff
             output[i] = (output[i].toInt() * gain).roundToInt()
                 .coerceIn(-32768, 32767).toShort()

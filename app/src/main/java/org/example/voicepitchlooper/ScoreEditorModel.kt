@@ -69,13 +69,19 @@ class ScoreEditorModel(source: List<ScoreNote>) {
         repeat(count) { items.add(index, ScoreNote("休符", null)) }
     }
 
-    /** Truncate only one complete measure, never below two measures. */
-    fun removeLastMeasure() {
+    /** Delete the selected four-beat bar and shift later bars left. Keep at least two bars. */
+    fun removeSelectedMeasure(selectedBeat: Int) {
+        require(selectedBeat in items.indices)
         check(items.size >= 12) { "2小節（8拍）より短くできません" }
-        repeat(4) { items.removeAt(items.lastIndex) }
+        val from = (selectedBeat / 4) * 4
+        items.subList(from, from + 4).clear()
     }
 
-    fun lastMeasureHasNotes(): Boolean = items.takeLast(4).any { it.frequency != null }
+    fun selectedMeasureHasNotes(selectedBeat: Int): Boolean {
+        require(selectedBeat in items.indices)
+        val from = (selectedBeat / 4) * 4
+        return items.subList(from, from + 4).any { it.frequency != null }
+    }
 
     /** Restore a full editor snapshot, including trailing rests and exact note spelling. */
     fun restoreNotes(snapshot: List<ScoreNote>) {

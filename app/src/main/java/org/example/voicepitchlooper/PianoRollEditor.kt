@@ -5,6 +5,7 @@ import android.app.Dialog
 import android.content.Context
 import android.app.AlertDialog
 import android.graphics.Canvas
+import android.graphics.Rect
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.Paint
@@ -136,9 +137,12 @@ class PianoRollEditor(
     private lateinit var timeline: HorizontalScrollView
     private lateinit var octaveInfo: TextView
     private lateinit var scoreScrollbar: android.widget.SeekBar
+    private lateinit var editorScrolling: ScrollView
     private lateinit var scrollStatus: TextView
     private lateinit var dialog: Dialog
-    private lateinit var playbackButton: Button
+    private lateinit var playFromStartButton: Button
+    private lateinit var playFromCurrentButton: Button
+    private var playingFromStart: Boolean? = null
     private val handler = Handler(Looper.getMainLooper())
     private var playbackRunning = false
     private var playbackBeat = -1
@@ -157,20 +161,43 @@ class PianoRollEditor(
         }
     }
 
+    private fun updatePlaybackButtons() {
+        if (::playFromStartButton.isInitialized) {
+            playFromStartButton.text = if (playbackRunning && playingFromStart == true)
+                "■ 再生停止" else "▶最初から再生"
+        }
+        if (::playFromCurrentButton.isInitialized) {
+            playFromCurrentButton.text = if (playbackRunning && playingFromStart == false)
+                "■ 再生停止" else "▶選択位置から再生"
+        }
+    }
+
     private fun stopPlayback() {
         if (!playbackRunning) return
         playbackRunning = false
+        playingFromStart = null
         handler.removeCallbacks(playbackUiStep)
         preview.stopScore()
-        if (::playbackButton.isInitialized) playbackButton.text = "▶ 楽譜再生"
+        updatePlaybackButtons()
     }
 
-    private fun togglePlayback() {
-        if (playbackRunning) { stopPlayback(); return }
-        preview.startScore(model.notes(), editorBpm)
+    private fun togglePlayback(fromStart: Boolean) {
+        // The active button stops playback. The other button changes the start point.
+        if (playbackRunning && playingFromStart == fromStart) {
+            stopPlayback()
+            return
+        }
+        if (playbackRunning) stopPlayback()
+        if (closed || countInActive || recorder != null) return
+        val startBeat = if (fromStart) 0 else selected
+        preview.startScore(model.notes(), editorBpm, startBeat)
+        selected = startBeat
+        syncSelection()
+        moveToSelection()
         playbackRunning = true
+        playingFromStart = fromStart
         playbackBeat = -1
-        playbackButton.text = "■ 再生停止"
+        updatePlaybackButtons()
         handler.post(playbackUiStep)
     }
     private val colors = UiTheme.palette(activity)
@@ -203,6 +230,71 @@ class PianoRollEditor(
         parent.addView(view, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         ).apply { topMargin = dp(margin) })
+    }
+
+    /**
+     * Broaden hit testing without changing the SeekBar's measured height, position or drawing.
+     * The surface receives DOWN before its child ScrollView / score panel. Forward only taps
+     * OUTSIDE the original SeekBar bounds; normal touches keep Android's native handling.
+     */
+    private inner class ExpandedSliderTouchSurface(context: Context) : LinearLayout(context) {
+        private val sliders = mutableListOf<Pair<SeekBar, Boolean>>()
+        private var forwardedSlider: SeekBar? = null
+
+        // allowAbove=false for BPM: the -5/+5 and numeric input controls are just above it.
+        fun registerSlider(slider: SeekBar, allowAbove: Boolean) {
+            sliders.add(slider to allowAbove)
+        }
+
+        override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                forwardedSlider = null
+                val surfacePosition = IntArray(2)
+                getLocationOnScreen(surfacePosition)
+                val touchX = (surfacePosition[0] + event.x).toInt()
+                val touchY = (surfacePosition[1] + event.y).toInt()
+                for ((slider, allowAbove) in sliders) {
+                    if (!slider.isEnabled || slider.visibility != View.VISIBLE ||
+                        slider.width <= 0 || slider.height <= 0) continue
+                    val visible = Rect()
+                    if (!slider.getGlobalVisibleRect(visible)) continue
+                    val sliderPosition = IntArray(2)
+                    slider.getLocationOnScreen(sliderPosition)
+                    val extraHeight = (dp(48) - slider.height).coerceAtLeast(0)
+                    val upper = if (allowAbove) extraHeight / 2 else 0
+                    val lower = extraHeight - upper
+                    val hit = Rect(sliderPosition[0], sliderPosition[1] - upper,
+                        sliderPosition[0] + slider.width,
+                        sliderPosition[1] + slider.height + lower)
+                    // Avoid responding for a BPM slider outside its scrolled viewport.
+                    if (slider === tempoBar) {
+                        val viewport = Rect()
+                        if (!editorScrolling.getGlobalVisibleRect(viewport) ||
+                            !hit.intersect(viewport)) continue
+                    }
+                    val withinHit = hit.contains(touchX, touchY)
+                    val withinOriginal = visible.contains(touchX, touchY)
+                    if (withinHit && !withinOriginal) {
+                        forwardedSlider = slider
+                        break
+                    }
+                }
+            }
+            val slider = forwardedSlider ?: return super.dispatchTouchEvent(event)
+            // Surface and SeekBar can be in different branches of the view hierarchy.
+            val parentPosition = IntArray(2)
+            val sliderPosition = IntArray(2)
+            getLocationOnScreen(parentPosition)
+            slider.getLocationOnScreen(sliderPosition)
+            val shifted = MotionEvent.obtain(event)
+            shifted.offsetLocation((parentPosition[0] - sliderPosition[0]).toFloat(),
+                (parentPosition[1] - sliderPosition[1]).toFloat())
+            val handled = slider.dispatchTouchEvent(shifted)
+            shifted.recycle()
+            if (event.actionMasked == MotionEvent.ACTION_UP ||
+                event.actionMasked == MotionEvent.ACTION_CANCEL) forwardedSlider = null
+            return handled
+        }
     }
 
     private fun snapshot(): EditorSnapshot =
@@ -331,7 +423,7 @@ class PianoRollEditor(
         }
         if (::recordFromSelectionButton.isInitialized) {
             recordFromSelectionButton.text = if (capturing && activeRecordButton === recordFromSelectionButton)
-                "■ 録音を停止" else "● 現在位置から録音"
+                "■ 録音を停止" else "● 選択位置から録音"
         }
         if (!capturing) activeRecordButton = null
     }
@@ -430,7 +522,7 @@ class PianoRollEditor(
         activity.ensureEditorMicrophonePermission {
             if (closed || recorder != null || countInActive) return@ensureEditorMicrophonePermission
             AlertDialog.Builder(activity)
-                .setTitle(UiLanguage.text(activity, if (fromStart) "先頭から録音" else "現在位置から録音"))
+                .setTitle(UiLanguage.text(activity, if (fromStart) "先頭から録音" else "選択位置から録音"))
                 .setMessage(
                     UiLanguage.text(activity,
                         "第${startBeat / 4 + 1}小節の${startBeat % 4 + 1}拍目から録音します。") +
@@ -523,7 +615,7 @@ class PianoRollEditor(
     }
 
     /** Make the selected beat a rest, just like placing an individual pitch:
-     * no undo-history entry. Both rest buttons share this behavior.
+     * no undo-history entry. The rest key remains in the pitch-entry controls.
      * Beat insertion (which shifts notes) still uses editWithUndo separately.
      */
     private fun setSelectedRest() {
@@ -650,7 +742,7 @@ class PianoRollEditor(
         }
         append(root, label("鼻歌・口笛から楽譜を作成（録音した拍だけ上書き）", 13f, muted), 9)
         recordButton = button("● 先頭から録音") { toggleRecording(fromStart = true) }
-        recordFromSelectionButton = button("● 現在位置から録音") {
+        recordFromSelectionButton = button("● 選択位置から録音") {
             toggleRecording(fromStart = false)
         }
         append(root, row(recordButton, recordFromSelectionButton, height = 48), 3)
@@ -664,11 +756,16 @@ class PianoRollEditor(
         append(root, countdownDisplay, 3)
         recordingStatus = label("音付き8カウント → マイク録音 → 拍ごとに音符化。60～500 BPM対応。", 12f, muted)
         append(root, recordingStatus, 3)
-        append(root, row(
-            button("選択拍を休符に変更") { setSelectedRest() },
-            button("▶ 楽譜再生") { togglePlayback() }.also { playbackButton = it },
-            height = 40
-        ), 6)
+        playFromStartButton = button("▶最初から再生") { togglePlayback(fromStart = true) }
+        playFromCurrentButton = button("▶選択位置から再生") { togglePlayback(fromStart = false) }
+        for (b in arrayOf(playFromStartButton, playFromCurrentButton)) {
+            b.setPadding(dp(2), 0, dp(2), 0)
+            b.maxLines = 2
+            b.setAutoSizeTextTypeUniformWithConfiguration(
+                10, 14, 1, android.util.TypedValue.COMPLEX_UNIT_SP
+            )
+        }
+        append(root, row(playFromStartButton, playFromCurrentButton, height = 48), 6)
         append(root, label("1拍単位の挿入・削除（後ろの音符を移動）", 13f, muted), 10)
         append(root, row(
             twoLineButton("休符を挿入\n（後ろを1拍ずらす）") {
@@ -718,22 +815,24 @@ class PianoRollEditor(
             }, height = 40
         ), 4)
         append(root, row(
-            button("末尾の小節を\n削除") {
+            button("選択小節を\n削除") {
                 if (model.size < 12) {
                     Toast.makeText(activity, UiLanguage.text(activity, "最低2小節は残します"), Toast.LENGTH_SHORT).show()
                     return@button
                 }
+                // Capture the selected bar before showing the confirmation dialog.
+                val beatToDelete = selected
                 val deleteOne = {
                     editWithUndo {
-                        model.removeLastMeasure()
-                        selected = selected.coerceAtMost(model.size - 1)
+                        model.removeSelectedMeasure(beatToDelete)
+                        selected = beatToDelete.coerceAtMost(model.size - 1)
                         refreshScore()
                     }
                 }
-                if (model.lastMeasureHasNotes()) {
+                if (model.selectedMeasureHasNotes(beatToDelete)) {
                     AlertDialog.Builder(activity)
-                        .setTitle(UiLanguage.text(activity, "末尾の小節を削除しますか？"))
-                        .setMessage(UiLanguage.text(activity, "最後の4拍に音符があります。取り消しは「↶ 戻す」で可能です。"))
+                        .setTitle(UiLanguage.text(activity, "選択小節を削除しますか？"))
+                        .setMessage(UiLanguage.text(activity, "選択した小節の4拍に音符があります。取り消しは「↶ 戻す」で可能です。"))
                         .setNegativeButton(UiLanguage.text(activity, "キャンセル"), null)
                         .setPositiveButton(UiLanguage.text(activity, "削除")) { _, _ -> deleteOne() }
                         .show()
@@ -846,13 +945,13 @@ class PianoRollEditor(
 
         // Full-screen score editor. The system status/navigation bars stay visible;
         // only the content below the fixed toolbar scrolls vertically.
-        val scrolling = ScrollView(activity).apply {
+        editorScrolling = ScrollView(activity).apply {
             isFillViewport = false
             isVerticalScrollBarEnabled = true
             addView(root)
         }
         val surfaceColor = colors.surface
-        val surface = LinearLayout(activity).apply {
+        val surface = ExpandedSliderTouchSurface(activity).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(surfaceColor)
             // Explicit insets are required when targeting Android 15/16 edge-to-edge.
@@ -907,8 +1006,11 @@ class PianoRollEditor(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         surface.addView(pinnedScore, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        surface.addView(scrolling, LinearLayout.LayoutParams(
+        surface.addView(editorScrolling, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        // These are invisible hit zones; no height/padding/margin/drawable is changed.
+        surface.registerSlider(scoreScrollbar, allowAbove = true)
+        surface.registerSlider(tempoBar, allowAbove = false)
 
         dialog = Dialog(activity, if (UiTheme.isDark(activity))
             R.style.AppThemeDark else R.style.AppTheme)

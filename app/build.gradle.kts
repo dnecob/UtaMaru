@@ -10,8 +10,8 @@ android {
         applicationId = "org.example.voicepitchlooper"
         minSdk = 31              // Android 12+
         targetSdk = 36
-        versionCode = 42
-        versionName = "0.8.7.22-localization"
+        versionCode = 43
+        versionName = "0.8.8.0"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
