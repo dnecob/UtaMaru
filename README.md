@@ -5,7 +5,7 @@ The app itself supports Japanese, Traditional Chinese, and English.<br>
 You can select your preferred language manually or use Auto to follow your device's language settings.<br>
 Development is focused on improving audio quality and stability.
 
-🎵楽譜で指定した音程へ、Androidスマートフォンのマイク入力音声をリアルタイムで変換・出力。<br>
+🎵Androidスマートフォンのマイク入力音声を楽譜で指定した音程へリアルタイムで変換・出力。<br>
 　普通に喋っているだけで歌っている様になるアプリです。
  
 🎶記録された楽譜を繰り返し再生しながら音階に合わせて声の音程を合わせ、スマホで再生したり<br>
