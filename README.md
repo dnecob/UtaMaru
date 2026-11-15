@@ -10,7 +10,7 @@ Development is focused on improving audio quality and stability.
  
 🎶記録された楽譜を繰り返し再生しながら音階に合わせて声の音程を合わせ、スマホで再生したり<br>
 　WindowsPC用USB/Wi-Fiマイクとしての利用も可能。<br>
-　入力音声をそのまま送信・出力するモードも搭載しています。
+　鼻歌や口笛などで楽譜を作成することも可能です。
 
 👇️楽譜画像やMIDIから唄まる用の楽譜に変換する方法も最下部に載せてあります👇️
 
