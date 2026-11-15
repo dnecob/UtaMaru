@@ -87,7 +87,7 @@ VB-CABLEとADBは同梱していません。公式配布元から入手してく
 - [VB-CABLE（公式）](https://vb-audio.com/Cable/)<br>
 - [Android SDK Platform-Tools（Google公式）](https://developer.android.com/tools/releases/platform-tools?hl=ja)
 
-## 分かりにくい部分の説明
+## Tips
 
 五線譜編集画面の譜面の左右スライドはシークバーでも出来ますが<br>
 譜面の上下端(かなり狭いですが)を左右にスワイプする事でスライドさせることも出来ます。
