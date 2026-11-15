@@ -113,8 +113,9 @@ Copyright (C) 2026 赫ねこ
 本リポジトリにはRubber Bandのソースコード一式を含めています。<br>
 配布するAPKに対応するソースコードも提供します。
 
-WindowsReceiverのソースコードは WindowsReceiver/src/main.go に含まれています。
-WindowsReceiverはGPL-2.0-or-laterで公開しています。ビルド手順およびライセンス情報は WindowsReceiver/SOURCE_AND_LICENSE.txt を参照してください。
+WindowsReceiverのソースコードは WindowsReceiver/src/main.go に含まれています。<br>
+WindowsReceiverはGPL-2.0-or-laterで公開しています。<br>
+ビルド手順およびライセンス情報は WindowsReceiver/SOURCE_AND_LICENSE.txt を参照してください。
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 ### 楽譜画像 ▷ 唄まる用楽譜
