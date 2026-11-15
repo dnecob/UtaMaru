@@ -75,7 +75,7 @@ Optional donations are welcome!!
 WindowsReceiverを使ってPCに音声を送り、VB-CABLE経由でDiscord・OBSなどの入力に利用できます。
 
 詳しいセットアップ手順は **[WindowsReceiver/ReadMe.txt](WindowsReceiver/ReadMe.txt)** を参照してください。<br>
-一応`START_PC_USB.bat`や`START_PC_WIFI.bat`を起動するだけで必要ファイルにチェックが入り<br>
+一応`START_PC_USB.bat`や`START_PC_WIFI.bat`を起動するだけで必須ファイルにチェックが入り<br>
 足りなければそのDL先へ移動できる様にしてあります。
 
 - USB接続：ADB（Google SDK Platform-Tools）が必要。アプリのPC接続先は `127.0.0.1`<br>
