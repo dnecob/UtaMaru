@@ -17,17 +17,26 @@ Development is focused on improving audio quality and stability.
 - 対応OS：**Android 12以降（API 31以上）**<br>
 - PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続
 
+広告無し・トラッカー無し。<br>
+Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセスもしません。
+
 ⚠現在、音質・安定性の改善を優先して開発中です。⚠
 
 ## ダウンロード
 
-📲[utamaru_v0.8.7.21.apk](https://github.com/dnecob/UtaMaru/releases/download/v0.8.7.21/utamaru_v0.8.7.21.apk)<br>
+📲[UtaMaru_v0.8.8.0.apk](https://github.com/dnecob/UtaMaru/releases/download/v0.8.8.0/UtaMaru.v0.8.8.0.apk)<br>
 💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.7.21/WindowsReceiver.zip)
 
 WindowsReceiver.zipはスマホをマイクとしてWindows PCに接続する場合のみ必要。<br>
 WindowsReceiver.zip is only required if you want to use your smartphone as a microphone for your Windows PC.
 
 スマホ単体で使用する場合は**WindowsReceiver、ADB、VB-CABLEは必要ありません**。
+
+各バージョンのアップデート内容はReleasesからご確認ください。
+
+資金援助してくれたら改良のモチベーションが上がります🤗<br>
+[https://akanekoubou.itch.io/utamaru](https://akanekoubou.itch.io/utamaru)<br>
+Optional donations are welcome!!
 
 ## スマホだけで使用する場合
 
@@ -49,7 +58,7 @@ WindowsReceiver.zip is only required if you want to use your smartphone as a mic
 - 最大4,096拍。4拍子の小節が途中で終わる場合は、末尾が休符で補完されます。<br>
 - BPMは五線譜編集画面で設定します（60～500、初期値200）。
 
-楽譜は文字列を公開、コピー＆ペーストして他の利用者と共有できます。 
+✨️楽譜は文字列を公開、コピー＆ペーストして他の利用者と共有できます。 
 
 ### 音声設定
 
@@ -158,3 +167,7 @@ WindowsReceiverはGPL-2.0-or-laterで公開しています。ビルド手順お�
 各パートの名前と音符数を示した後、変換した文字列をそれぞれコードブロックで出力してください。<br>
 変換文字列には説明文を混ぜず、そのままコピーして使えるようにしてください。<br>
 🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺
+
+※歌っている様に聞こえる為には、入力する声の音域と楽譜の音域をある程度合わせる必要があります。<br>
+楽譜編集画面の録音機能で普段の声の音域を測り<br>
+その音域に近くなるように【全音符を1オクターブ下げる】ボタンで合わせていくと良いでしょう。
