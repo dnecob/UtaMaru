@@ -25,7 +25,7 @@ Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセス�
 ## ダウンロード
 
 📲[UtaMaru_v0.8.8.0.apk](https://github.com/dnecob/UtaMaru/releases/download/v0.8.8.0/UtaMaru.v0.8.8.0.apk)<br>
-💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.7.21/WindowsReceiver.zip)
+💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.8.0/WindowsReceiver.zip)
 
 WindowsReceiver.zipはスマホをマイクとしてWindows PCに接続する場合のみ必要。<br>
 WindowsReceiver.zip is only required if you want to use your smartphone as a microphone for your Windows PC.
