@@ -228,8 +228,6 @@ Write-Host '========================================================='
 Write-Host (T 'usb_header')
 Write-Host '========================================================='
 Write-Host ''
-Write-Host (T 'usb_require')
-Write-Host (T 'usb_adb_external')
 Write-Host ''
 
 if (-not (Test-Path -LiteralPath $receiverExe -PathType Leaf)) {

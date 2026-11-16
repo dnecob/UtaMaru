@@ -6,7 +6,7 @@
     <string name="ui_003">Example: D3A3F# GB3G3G (space = 1-beat rest, # = sharp, number = octave)</string>
     <string name="ui_004">♫ Edit on staff</string>
     <string name="ui_005">Drag vertically by semitone; 1-second preview. Starts with 2 bars; you can add more.</string>
-    <string name="ui_006">Score presets</string>
+    <string name="ui_006">Score presets (up to 3)</string>
     <string name="ui_007">Tap a saved song to load it</string>
     <string name="ui_008">Save current score and BPM as a preset</string>
     <string name="ui_009">Pitch conversion engine</string>
@@ -15,10 +15,10 @@
     <string name="ui_012">Improved quality (PSOLA-like)</string>
     <string name="ui_013">Rubber Band (formant preservation)</string>
     <string name="ui_014">Rubber Band (not installed; setup required)</string>
-    <string name="ui_015">Switch engines only while stopped. Rubber Band can preserve vocal formants when installed.</string>
+    <string name="ui_015">Switch engines only while stopped.</string>
     <string name="ui_016">Suppress noise when silent (recommended)</string>
     <string name="ui_017">Prefer natural voice (bypass shifting near original pitch; experimental)</string>
-    <string name="ui_018">Prefer original audio within 15 cents of the target; resume shifted audio above 25 cents. Standard/PSOLA only. Turn off to compare with v0.8.6 behavior.</string>
+    <string name="ui_018">Prefer original audio within 15 cents of the target; resume shifted audio above 25 cents. Standard/PSOLA only.</string>
     <string name="ui_019">Original-audio monitor (for comparison)</string>
     <string name="ui_020">Pitch-shift ratio range</string>
     <string name="ui_021">Blue = low-pitch limit; green = high-pitch limit. Drag the handles to adjust. Previous range: 0.50–3.50×. Wider ranges may degrade vocal quality.</string>
@@ -26,7 +26,7 @@
     <string name="ui_023">Play unmodified voice</string>
     <string name="ui_024">Silence</string>
     <string name="ui_025">Hold previous pitch</string>
-    <string name="ui_026">The previous pitch carries over from the end of the loop. Rests are always silent in test playback.</string>
+    <string name="ui_026">The previous pitch carries over from the end of the loop.</string>
     <string name="ui_027">Output boost</string>
     <string name="ui_028">Adjust output boost</string>
     <string name="ui_029">Applies to phone playback and PC output. 0 dB is the original level. Can be adjusted during playback. Excessive gain risks noise and feedback. Peak limiting helps prevent clipping.</string>
@@ -41,9 +41,9 @@
     <string name="ui_038">Send test tones to PC</string>
     <string name="ui_039">Send pitch-corrected microphone to PC</string>
     <string name="ui_040">Send unmodified microphone to PC</string>
-    <string name="ui_041">Monitor</string>
+    <string name="ui_041">Debug monitor</string>
     <string name="ui_042">Ready. Preview scores in the staff editor. For phone playback, select the Android media output. For PC output, start the receiver first.</string>
-    <string name="ui_043">Caution: This beta may cause voice distortion or noise. Start at low volume. Keep the microphone away from speakers to prevent feedback. Audio stops when you leave the app.</string>
+    <string name="ui_043">Caution: Start at low volume. Keep the microphone away from speakers to prevent feedback. Audio stops when you leave the app.</string>
     <string name="ui_044">Rest playback mode</string>
     <string name="ui_045">Cancel</string>
     <string name="ui_046">Not saved</string>
@@ -105,10 +105,10 @@
     <string name="ui_102">After an 8-count metronome at the selected BPM, notes are replaced beat by beat. Unrecorded beats remain unchanged. You can undo the recording.</string>
     <string name="ui_103">Start recording</string>
     <string name="ui_104">Recording cancelled</string>
-    <string name="ui_105">◀ Scroll score ▶</string>
+    <string name="ui_105">Scroll score</string>
     <string name="ui_106">Create score by humming/whistling (overwrite recorded beats only)</string>
     <string name="ui_107">Beats until recording starts</string>
-    <string name="ui_108">8-count metronome → record → detect notes by beat. Supports 60–500 BPM.</string>
+    <string name="ui_108">8-count metronome → record → detect notes by beat.</string>
     <string name="ui_109">▶ Play from start</string>
     <string name="ui_110">Insert/delete beats (shift following notes)</string>
     <string name="ui_111">Insert rest\n(shift notes +1 beat)</string>
@@ -139,7 +139,7 @@
     <string name="ui_136">Rest</string>
     <string name="ui_137">Next beat ▶</string>
     <string name="ui_138">Auto-advance after note entry</string>
-    <string name="ui_139">Up to 30 undo states. Adding/dragging notes and rests does not auto-save undo history. Use ↰ at the top to save a checkpoint.</string>
+    <string name="ui_139">Undo history holds up to 30 entries. Adding/dragging notes and changing rests do not create undo history automatically.</string>
     <string name="ui_140">Score</string>
     <string name="ui_141">Save current score as an undo checkpoint</string>
     <string name="ui_142">Back</string>
@@ -213,7 +213,7 @@
     <string name="ui_dynamic_022">Recording bar {0}, beat {1} ({2} BPM)</string>
     <string name="ui_dynamic_023">Record from bar {0}, beat {1}.</string>
     <string name="ui_dynamic_024">Choose pitch &amp; octave (current octave: {0})</string>
-    <string name="ui_dynamic_025">◀ Score: bar {0} / {1} ▶</string>
+    <string name="ui_dynamic_025">Score: bar {0} / {1}</string>
     <string name="ui_dynamic_026">Keep through bar {0}; delete {1} later beats ({2} notes).</string>
     <string name="ui_dynamic_027">Lowered {0} notes by an octave</string>
     <string name="ui_dynamic_028">Raised {0} notes by an octave</string>
@@ -259,11 +259,16 @@
     <string name="ui_dynamic_033">Moving {0} would exceed C1–B6. Score unchanged.</string>
     <string name="ui_dynamic_034">Microphone read error: {0}</string>
     <string name="ui_dynamic_035">Speaker output error: {0}</string>
-    <string name="ui_224">Pause score while no voice is detected</string>
+    <string name="ui_224">Pause score when no voice input is detected</string>
     <string name="theme_setting">Appearance</string>
     <string name="theme_auto_short">Auto</string>
     <string name="theme_auto">Automatic (device settings)</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_switch_stopped">Stop playback before changing the theme.</string>
+    <string name="ui_225">Show previous measure</string>
+    <string name="ui_226">Show next measure</string>
+    <string name="ui_227">↰ Save state</string>
+    <string name="ui_receiver_not_started">Start the receiving program (WindowsReceiver) first.</string>
+    <string name="ui_228">Skip to next note</string>
 </resources>

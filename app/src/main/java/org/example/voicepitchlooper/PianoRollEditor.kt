@@ -139,6 +139,8 @@ class PianoRollEditor(
     private lateinit var scoreScrollbar: android.widget.SeekBar
     private lateinit var editorScrolling: ScrollView
     private lateinit var scrollStatus: TextView
+    private lateinit var scrollLeftButton: Button
+    private lateinit var scrollRightButton: Button
     private lateinit var dialog: Dialog
     private lateinit var playFromStartButton: Button
     private lateinit var playFromCurrentButton: Button
@@ -241,14 +243,54 @@ class PianoRollEditor(
         private val sliders = mutableListOf<Pair<SeekBar, Boolean>>()
         private var forwardedSlider: SeekBar? = null
 
-        // allowAbove=false for BPM: the -5/+5 and numeric input controls are just above it.
+        // The display stays unchanged. Catch horizontal drags from the entire region
+        // immediately below the toolbar down to the bottom of the staff viewport,
+        // including the narrow inset around the staff's actual child view.
+        private var scoreSwipeTop: View? = null
+        private var scoreSwipeViewport: HorizontalScrollView? = null
+        private var scoreSwipeCandidate = false
+        private var scoreSwipeActive = false
+        private var scoreSwipeDownX = 0f
+        private var scoreSwipeDownY = 0f
+        private var scoreSwipeLastX = 0f
+
+        fun registerScoreSwipeRegion(top: View, viewport: HorizontalScrollView) {
+            scoreSwipeTop = top
+            scoreSwipeViewport = viewport
+        }
+
+        // allowAbove=false for BPM: the -1/+1 and numeric input controls are just above it.
         fun registerSlider(slider: SeekBar, allowAbove: Boolean) {
             sliders.add(slider to allowAbove)
+        }
+
+        private fun beginScoreSwipeIfInside(event: MotionEvent) {
+            scoreSwipeCandidate = false
+            scoreSwipeActive = false
+            val top = scoreSwipeTop ?: return
+            val viewport = scoreSwipeViewport ?: return
+            if (!viewport.isEnabled) return
+            val topBounds = Rect()
+            val scoreBounds = Rect()
+            val surfaceBounds = Rect()
+            if (!top.getGlobalVisibleRect(topBounds) ||
+                !viewport.getGlobalVisibleRect(scoreBounds) ||
+                !getGlobalVisibleRect(surfaceBounds)) return
+            // The start edge is exactly under the toolbar; the lower edge is the
+            // score viewport, not the navigator's label or its SeekBar.
+            val swipeBounds = Rect(surfaceBounds.left, topBounds.top,
+                surfaceBounds.right, scoreBounds.bottom)
+            if (!swipeBounds.contains(event.rawX.toInt(), event.rawY.toInt())) return
+            scoreSwipeCandidate = true
+            scoreSwipeDownX = event.rawX
+            scoreSwipeDownY = event.rawY
+            scoreSwipeLastX = event.rawX
         }
 
         override fun dispatchTouchEvent(event: MotionEvent): Boolean {
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                 forwardedSlider = null
+                beginScoreSwipeIfInside(event)
                 val surfacePosition = IntArray(2)
                 getLocationOnScreen(surfacePosition)
                 val touchX = (surfacePosition[0] + event.x).toInt()
@@ -280,20 +322,71 @@ class PianoRollEditor(
                     }
                 }
             }
-            val slider = forwardedSlider ?: return super.dispatchTouchEvent(event)
-            // Surface and SeekBar can be in different branches of the view hierarchy.
-            val parentPosition = IntArray(2)
-            val sliderPosition = IntArray(2)
-            getLocationOnScreen(parentPosition)
-            slider.getLocationOnScreen(sliderPosition)
-            val shifted = MotionEvent.obtain(event)
-            shifted.offsetLocation((parentPosition[0] - sliderPosition[0]).toFloat(),
-                (parentPosition[1] - sliderPosition[1]).toFloat())
-            val handled = slider.dispatchTouchEvent(shifted)
-            shifted.recycle()
-            if (event.actionMasked == MotionEvent.ACTION_UP ||
-                event.actionMasked == MotionEvent.ACTION_CANCEL) forwardedSlider = null
-            return handled
+            val slider = forwardedSlider
+            if (slider != null) {
+                // Surface and SeekBar can be in different branches of the view hierarchy.
+                val parentPosition = IntArray(2)
+                val sliderPosition = IntArray(2)
+                getLocationOnScreen(parentPosition)
+                slider.getLocationOnScreen(sliderPosition)
+                val shifted = MotionEvent.obtain(event)
+                shifted.offsetLocation((parentPosition[0] - sliderPosition[0]).toFloat(),
+                    (parentPosition[1] - sliderPosition[1]).toFloat())
+                val handled = slider.dispatchTouchEvent(shifted)
+                shifted.recycle()
+                if (event.actionMasked == MotionEvent.ACTION_UP ||
+                    event.actionMasked == MotionEvent.ACTION_CANCEL) forwardedSlider = null
+                return handled
+            }
+
+            if (scoreSwipeCandidate) {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_MOVE -> {
+                        if (event.pointerCount != 1) {
+                            // Keep multi-touch behavior with the original score child.
+                            scoreSwipeCandidate = false
+                            return super.dispatchTouchEvent(event)
+                        }
+                        if (!scoreSwipeActive) {
+                            val dx = event.rawX - scoreSwipeDownX
+                            val dy = event.rawY - scoreSwipeDownY
+                            if (abs(dx) > dp(8) && abs(dx) > abs(dy) * 1.3f) {
+                                // A horizontal gesture belongs to the score navigator,
+                                // not to note selection or pitch dragging. Cancel the
+                                // child's pending tap before redirecting the movement.
+                                val cancel = MotionEvent.obtain(event)
+                                cancel.action = MotionEvent.ACTION_CANCEL
+                                super.dispatchTouchEvent(cancel)
+                                cancel.recycle()
+                                scoreSwipeActive = true
+                            } else if (abs(dy) > dp(8) && abs(dy) > abs(dx) * 1.3f) {
+                                // Preserve vertical dragging of notes.
+                                scoreSwipeCandidate = false
+                            }
+                        }
+                        if (scoreSwipeActive) {
+                            val viewport = scoreSwipeViewport
+                            if (viewport != null) {
+                                viewport.scrollBy((scoreSwipeLastX - event.rawX).roundToInt(), 0)
+                            }
+                            scoreSwipeLastX = event.rawX
+                            return true
+                        }
+                        scoreSwipeLastX = event.rawX
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        val handledPan = scoreSwipeActive
+                        scoreSwipeCandidate = false
+                        scoreSwipeActive = false
+                        if (handledPan) return true
+                    }
+                }
+            }
+            // If DOWN began in the (non-child) edge strip, claim it so Android
+            // still sends MOVE/UP for a swipe started just below the toolbar.
+            val handledByChild = super.dispatchTouchEvent(event)
+            return handledByChild || (scoreSwipeCandidate &&
+                event.actionMasked == MotionEvent.ACTION_DOWN)
         }
     }
 
@@ -577,7 +670,19 @@ class PianoRollEditor(
         val firstVisibleBeat = (timeline.scrollX / scoreView.beatWidth).coerceAtLeast(0)
         val lastMeasure = (model.size + 3) / 4
         val currentMeasure = (firstVisibleBeat / 4 + 1).coerceIn(1, lastMeasure)
-        scrollStatus.text = "◀ 譜面の横移動：$currentMeasure / $lastMeasure 小節 ▶"
+        scrollStatus.text = "譜面の横移動：$currentMeasure / $lastMeasure 小節"
+        val limit = (scoreView.scoreRight() - timeline.width).coerceAtLeast(0)
+        if (::scrollLeftButton.isInitialized) scrollLeftButton.isEnabled = timeline.scrollX > 0
+        if (::scrollRightButton.isInitialized) scrollRightButton.isEnabled = timeline.scrollX < limit
+    }
+
+    /** Move the visible score by one 4/4 measure without changing the selected beat. */
+    private fun scrollByMeasure(direction: Int) {
+        val limit = (scoreView.scoreRight() - timeline.width).coerceAtLeast(0)
+        val step = scoreView.beatWidth * 4
+        val position = (timeline.scrollX + direction * step).coerceIn(0, limit)
+        timeline.scrollTo(position, 0)
+        updateScrollStatus()
     }
 
     private fun refreshScore() {
@@ -674,7 +779,7 @@ class PianoRollEditor(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        val minusTempo = button("−5") { updateTempo(editorBpm - 5) }
+        val minusTempo = button("−1") { updateTempo(editorBpm - 1) }
         tempoRow.addView(minusTempo, LinearLayout.LayoutParams(dp(57), dp(38)))
         tempoLabel = label("", 15f, blue).apply {
             gravity = Gravity.CENTER
@@ -682,7 +787,7 @@ class PianoRollEditor(
             setOnClickListener { if (recorder == null && !countInActive) askExactTempo() }
         }
         tempoRow.addView(tempoLabel, LinearLayout.LayoutParams(0, dp(38), 1f))
-        val plusTempo = button("+5") { updateTempo(editorBpm + 5) }
+        val plusTempo = button("+1") { updateTempo(editorBpm + 1) }
         tempoRow.addView(plusTempo, LinearLayout.LayoutParams(dp(57), dp(38)))
         append(root, tempoRow, 6)
         tempoBar = SeekBar(activity).apply {
@@ -714,7 +819,7 @@ class PianoRollEditor(
             setPadding(dp(8), dp(1), dp(8), dp(2))
             setBackgroundColor(colors.panel)
         }
-        scrollStatus = label("◀ 譜面の横移動 ▶", 13f, blue).apply {
+        scrollStatus = label("譜面の横移動", 13f, blue).apply {
             gravity = Gravity.CENTER
             setTypeface(typeface, Typeface.BOLD)
         }
@@ -733,7 +838,37 @@ class PianoRollEditor(
                 override fun onStopTrackingTouch(bar: android.widget.SeekBar?) {}
             })
         }
-        append(scrollPanel, scoreScrollbar)
+        // Keep the SeekBar's original WRAP_CONTENT height and its expanded touch zone.
+        // Only its horizontal width shrinks to make room for one-measure buttons.
+        val scrollControls = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        scrollLeftButton = LocalizedButton(activity).apply {
+            text = "◀"
+            isAllCaps = false
+            textSize = 19f
+            minWidth = 0
+            minimumWidth = 0
+            setPadding(0, 0, 0, 0)
+            contentDescription = UiLanguage.text(activity, "前の小節を表示")
+            setOnClickListener { scrollByMeasure(-1) }
+        }
+        scrollRightButton = LocalizedButton(activity).apply {
+            text = "▶"
+            isAllCaps = false
+            textSize = 19f
+            minWidth = 0
+            minimumWidth = 0
+            setPadding(0, 0, 0, 0)
+            contentDescription = UiLanguage.text(activity, "次の小節を表示")
+            setOnClickListener { scrollByMeasure(1) }
+        }
+        scrollControls.addView(scrollLeftButton, LinearLayout.LayoutParams(dp(44), dp(40)))
+        scrollControls.addView(scoreScrollbar, LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        scrollControls.addView(scrollRightButton, LinearLayout.LayoutParams(dp(44), dp(40)))
+        append(scrollPanel, scrollControls)
         append(pinnedScore, scrollPanel, 1)
         timeline.setOnScrollChangeListener { _, _, _, _, _ ->
             val available = (scoreView.scoreRight() - timeline.width).coerceAtLeast(0)
@@ -754,7 +889,7 @@ class PianoRollEditor(
             contentDescription = UiLanguage.text(activity, "録音開始までの残りカウント")
         }
         append(root, countdownDisplay, 3)
-        recordingStatus = label("音付き8カウント → マイク録音 → 拍ごとに音符化。60～500 BPM対応。", 12f, muted)
+        recordingStatus = label("音付き8カウント → マイク録音 → 拍ごとに音符化。", 12f, muted)
         append(root, recordingStatus, 3)
         playFromStartButton = button("▶最初から再生") { togglePlayback(fromStart = true) }
         playFromCurrentButton = button("▶選択位置から再生") { togglePlayback(fromStart = false) }
@@ -766,7 +901,6 @@ class PianoRollEditor(
             )
         }
         append(root, row(playFromStartButton, playFromCurrentButton, height = 48), 6)
-        append(root, label("1拍単位の挿入・削除（後ろの音符を移動）", 13f, muted), 10)
         append(root, row(
             twoLineButton("休符を挿入\n（後ろを1拍ずらす）") {
                 editWithUndo {
@@ -787,7 +921,6 @@ class PianoRollEditor(
             }, height = 62
         ), 4)
         append(root, label("※ 4/4を維持：挿入時は末尾の休符を利用し、足りなければ1小節追加。削除後の末尾は休符になります。", 11f, muted), 3)
-        append(root, label("小節の追加・削除（1小節＝4拍）", 13f, muted), 10)
         append(root, row(
             button("末尾に小節追加") {
                 editWithUndo {
@@ -864,7 +997,6 @@ class PianoRollEditor(
             }, height = 64
         ), 4)
 
-        append(root, label("楽譜全体のオクターブ移動（休符はそのまま）", 13f, muted), 10)
         append(root, row(
             button("全音符を1オクターブ下げる") {
                 editWithUndo {
@@ -889,7 +1021,6 @@ class PianoRollEditor(
         ), 4)
         append(root, label("※ C1～B6の範囲を超える音符がある場合、全体の移動を取り消します。", 11f, muted), 3)
 
-        append(root, label("拍の移動（音階ボタンで入力するときに使用）", 13f, muted), 12)
         append(root, row(
             button("◀ 前の拍") { chooseBeat((selected - 1).coerceAtLeast(0)); moveToSelection() },
             button("休符") { setSelectedRest() },
@@ -941,7 +1072,8 @@ class PianoRollEditor(
             pitchButton("G#", "ソ"), pitchButton("A", "ラ"),
             pitchButton("A#", "ラ"), pitchButton("B", "シ"), height = 42
         ), 2)
-        append(root, label("※ 履歴は最大30段階。音符の配置・ドラッグ・休符への変更は自動で履歴を作りません。残したい状態は上部の「↰」で一時保存できます。", 11f, muted), 9)
+
+        append(root, label("※ 履歴は30まで。音符の配置・ドラッグ・休符への変更は自動で履歴を作りません。", 11f, muted), 9)
 
         // Full-screen score editor. The system status/navigation bars stay visible;
         // only the content below the fixed toolbar scrolls vertically.
@@ -968,9 +1100,6 @@ class PianoRollEditor(
             setPadding(dp(5), dp(4), dp(5), dp(4))
             setBackgroundColor(colors.toolbar)
         }
-        toolbar.addView(label("楽譜", 16f).apply {
-            setTypeface(typeface, Typeface.BOLD)
-        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         undoButton = button("↶ やり直し") { undo() }.apply {
             // Keep the history count on the first line even at the 30-entry limit.
             // Auto-size covers larger system fonts without changing toolbar layout.
@@ -981,15 +1110,24 @@ class PianoRollEditor(
                 10, 13, 1, android.util.TypedValue.COMPLEX_UNIT_SP
             )
         }
-        toolbar.addView(undoButton, LinearLayout.LayoutParams(dp(92), dp(44)))
-        checkpointButton = button("↰") { saveCheckpoint() }.apply {
-            textSize = 21f
+        // Split the available width evenly with the checkpoint button; the
+        // undo-history count is still auto-sized for narrow screens.
+        toolbar.addView(undoButton, LinearLayout.LayoutParams(0, dp(44), 1f))
+        checkpointButton = button("↰一時保存") { saveCheckpoint() }.apply {
+            // Reuse the old title's free space, keeping the toolbar's other
+            // buttons at their original widths. Only this label auto-shrinks.
+            setSingleLine(true)
+            maxLines = 1
+            textSize = 14f
+            setAutoSizeTextTypeUniformWithConfiguration(
+                9, 14, 1, android.util.TypedValue.COMPLEX_UNIT_SP
+            )
             contentDescription = UiLanguage.text(activity, "現在の楽譜をやり直し履歴に一時保存")
             minWidth = 0
             minimumWidth = 0
-            setPadding(0, 0, 0, 0)
+            setPadding(dp(2), 0, dp(2), 0)
         }
-        toolbar.addView(checkpointButton, LinearLayout.LayoutParams(dp(40), dp(44)))
+        toolbar.addView(checkpointButton, LinearLayout.LayoutParams(0, dp(44), 1f))
         backButton = button("戻る") { dialog.dismiss() }
         toolbar.addView(backButton, LinearLayout.LayoutParams(dp(52), dp(44)))
         applyButton = button("変更を反映") {
@@ -1008,6 +1146,9 @@ class PianoRollEditor(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         surface.addView(editorScrolling, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        // Catch horizontal swipes all the way up to the toolbar's lower edge.
+        // The staff, navigator and toolbar keep their original measured sizes.
+        surface.registerScoreSwipeRegion(pinnedScore, timeline)
         // These are invisible hit zones; no height/padding/margin/drawable is changed.
         surface.registerSlider(scoreScrollbar, allowAbove = true)
         surface.registerSlider(tempoBar, allowAbove = false)

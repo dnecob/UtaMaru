@@ -6,15 +6,37 @@ import kotlin.math.min
 
 /** Only affects live microphone output. Score test tones keep their written rests. */
 enum class RestPlaybackMode(val caption: String) {
+    HOLD_LAST("直前の音程を維持"),
+    SKIP_TO_NEXT("次の音符まで飛ばす"),
     RAW_VOICE("生の声をそのまま出す"),
-    SILENCE("無音にする"),
-    HOLD_LAST("直前の音程を維持")
+    SILENCE("無音にする")
 }
 
 /** Fill rests in a *temporary playback copy* of the score, never in the saved score.
  * A rest at the start wraps back to the last actual note in the loop.
  */
 object RestPlaybackPlan {
+    /**
+     * Number of beats to jump forward when a rest is encountered, wrapping
+     * within the repeated score. Pitched beats return zero; a score containing
+     * only rests also returns zero so playback stays silent without looping.
+     * Calculated once when playback starts, not on the real-time audio thread.
+     */
+    fun stepsUntilNextNote(notes: List<ScoreNote>): IntArray {
+        require(notes.isNotEmpty())
+        val distances = IntArray(notes.size)
+        var nextNoteIndex = notes.indexOfFirst { it.frequency != null }
+        if (nextNoteIndex < 0) return distances
+        for (i in notes.indices.reversed()) {
+            if (notes[i].frequency != null) {
+                nextNoteIndex = i
+            } else {
+                distances[i] = (nextNoteIndex - i + notes.size) % notes.size
+            }
+        }
+        return distances
+    }
+
     fun holdLast(notes: List<ScoreNote>): List<ScoreNote> {
         require(notes.isNotEmpty() && notes.any { it.frequency != null })
         var previous = notes.last { it.frequency != null }

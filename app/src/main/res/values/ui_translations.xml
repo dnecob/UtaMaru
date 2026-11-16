@@ -14,10 +14,10 @@
     <string name="ui_012">音質改善（PSOLA風）</string>
     <string name="ui_013">Rubber Band（フォルマント維持）</string>
     <string name="ui_014">Rubber Band（未導入・セットアップが必要）</string>
-    <string name="ui_015">切り替えは停止中のみ。Rubber Bandは導入後、声のフォルマント維持を試せます。</string>
+    <string name="ui_015">切り替えは停止中のみ。</string>
     <string name="ui_016">音声がないときのノイズ抑制（推奨）</string>
     <string name="ui_017">自然声優先（元の音程に近い声を再合成しない・試験）</string>
-    <string name="ui_018">元の音程との差が15セント以内なら原音を優先し、25セント以上で変換音へ戻します。標準・PSOLA風のみ。OFFでv0.8.6相当の音程変換と比較できます。</string>
+    <string name="ui_018">元の音程との差が15セント以内なら原音を優先し、25セント以上で変換音へ戻します。標準・PSOLA風のみ。</string>
     <string name="ui_019">原音モニター（変換を聴き比べる診断用）</string>
     <string name="ui_020">ピッチ変換倍率の範囲</string>
     <string name="ui_021">青＝低音側の下限、緑＝高音側の上限。左右のつまみを動かして指定。従来の設定は0.50〜3.50倍。範囲を広げるほど声質が崩れやすくなります。</string>
@@ -25,7 +25,7 @@
     <string name="ui_023">生の声をそのまま出す</string>
     <string name="ui_024">無音にする</string>
     <string name="ui_025">直前の音程を維持</string>
-    <string name="ui_026">直前の音程はループ末尾からも引き継ぎます。テスト音の休符は常に無音です。</string>
+    <string name="ui_026">直前の音程はループ末尾からも引き継ぎます。</string>
     <string name="ui_027">出力ブースト</string>
     <string name="ui_028">出力ブーストを調整</string>
     <string name="ui_029">スマホ再生・PC送信に共通。0 dBは従来と同じ音量。再生中も変更可能。上げすぎるとノイズ・ハウリングの危険があります。音割れを抑えるため、ピークが大きい場合は増幅を自動制限します。</string>
@@ -40,9 +40,9 @@
     <string name="ui_038">PCへテスト音を送る</string>
     <string name="ui_039">マイク入力を音程変換してPCへ送る</string>
     <string name="ui_040">マイク入力をそのままPCへ送る</string>
-    <string name="ui_041">モニター</string>
+    <string name="ui_041">デバッグモニター</string>
     <string name="ui_042">待機中。楽譜の試聴は五線譜編集画面から行えます。スマホ再生はAndroidのメディア出力先を設定。PC出力は受信プログラムを先に起動してください。</string>
-    <string name="ui_043">注意: 実験版では声質・ノイズが悪化する場合があります。最初は音量を小さめに。スピーカーの音をマイクが拾うとハウリングするため、距離を離してください。アプリを離れると停止します。</string>
+    <string name="ui_043">注意: 最初は音量を小さめに。スピーカーの音をマイクが拾うとハウリングするため、距離を離してください。アプリを離れると停止します。</string>
     <string name="ui_044">休符の処理方法</string>
     <string name="ui_045">キャンセル</string>
     <string name="ui_046">未保存</string>
@@ -107,7 +107,7 @@
     <string name="ui_105">◀ 譜面の横移動 ▶</string>
     <string name="ui_106">鼻歌・口笛から楽譜を作成（録音した拍だけ上書き）</string>
     <string name="ui_107">録音開始までの残りカウント</string>
-    <string name="ui_108">音付き8カウント → マイク録音 → 拍ごとに音符化。60～500 BPM対応。</string>
+    <string name="ui_108">音付き8カウント → マイク録音 → 拍ごとに音符化。</string>
     <string name="ui_109">選択拍を休符に変更</string>
     <string name="ui_110">1拍単位の挿入・削除（後ろの音符を移動）</string>
     <string name="ui_111">休符を挿入\n（後ろを1拍ずらす）</string>
@@ -138,7 +138,7 @@
     <string name="ui_136">休符</string>
     <string name="ui_137">次の拍 ▶</string>
     <string name="ui_138">音符入力後に次の拍へ自動送り</string>
-    <string name="ui_139">※ 履歴は最大30段階。音符の配置・ドラッグ・休符への変更は自動で履歴を作りません。残したい状態は上部の「↰」で一時保存できます。</string>
+    <string name="ui_139">※ 履歴は30まで。音符の配置・ドラッグ・休符への変更は自動で履歴を作りません。</string>
     <string name="ui_140">楽譜</string>
     <string name="ui_141">現在の楽譜をやり直し履歴に一時保存</string>
     <string name="ui_142">戻る</string>
@@ -258,5 +258,7 @@
     <string name="ui_dynamic_033">{0} を移動すると音域C1～B6を超えます。楽譜は変更していません</string>
     <string name="ui_dynamic_034">マイクの読み取りエラー: {0}</string>
     <string name="ui_dynamic_035">スピーカーへの出力エラー: {0}</string>
-    <string name="ui_224">音声がない間は楽譜を一時停止</string>
+    <string name="ui_224">音声入力が無い間は楽譜を一時停止</string>
+    <string name="ui_receiver_not_started">受信プログラム(WindowsReceiver)を先に起動してください。</string>
+    <string name="ui_228">次の音符まで飛ばす</string>
 </resources>

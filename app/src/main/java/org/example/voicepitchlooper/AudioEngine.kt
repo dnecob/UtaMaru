@@ -9,6 +9,7 @@ import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
 import android.os.Process
+import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.Socket
 import kotlin.math.max
@@ -24,7 +25,9 @@ class AudioEngine(
     companion object {
         const val RATE = 48000
         const val PC_PORT = 50005
+        const val RECEIVER_NOT_STARTED = "受信プログラム(WindowsReceiver)を先に起動してください。"
         private const val FRAME = 960  // exactly 20 ms of 48kHz 16-bit mono PCM
+        private const val SCORE_STARTUP_GRACE_MS = 300L
     }
 
     data class AudioStatus(
@@ -76,7 +79,15 @@ class AudioEngine(
                     noiseGateEnabled, restMode, pauseScoreOnSilence, maxPitchRatio, minPitchRatio,
                     nearUnityEnabled, originalMonitor, directMic)
             } catch (e: Exception) {
-                if (running) onError("${e.javaClass.simpleName}: ${e.message ?: "不明なエラー"}")
+                if (running) {
+                    // A refused TCP connection means nothing is listening at the
+                    // selected receiver endpoint. Keep timeouts/address failures
+                    // distinguishable from this specific case.
+                    val message = if (outputTarget == OutputTarget.PC && e is ConnectException)
+                        RECEIVER_NOT_STARTED
+                    else "${e.javaClass.simpleName}: ${e.message ?: "不明なエラー"}"
+                    onError(message)
+                }
             } finally {
                 running = false
                 onStopped()
@@ -168,6 +179,10 @@ class AudioEngine(
             val scoreActivityDetector = if (voiceMode && !directMic && pauseScoreOnSilence && gate == null)
                 VoiceNoiseGate() else null
             val pauseScoreClock = voiceMode && !directMic && pauseScoreOnSilence
+            // Ignore tap/startup noise for the first 300ms of captured audio.
+            // The score stays on its first note until this grace period ends;
+            // audio capture, conversion and transmission continue normally.
+            val scoreStartupGraceSamples = RATE * SCORE_STARTUP_GRACE_MS / 1000L
             // Wet/dry latency is known to be 8192 samples in the two Kotlin
             // shifters. Rubber Band has its own variable internal delay.
             val naturalBypass = if (voiceMode && !directMic && voiceEngine != VoiceEngine.RUBBER_BAND)
@@ -176,6 +191,10 @@ class AudioEngine(
             val restMixer = if (voiceMode && !directMic) RestOutputMixer(matchImprovedLevel = voiceEngine != VoiceEngine.STANDARD) else null
             val heldNotes = if (voiceMode && !directMic && restMode == RestPlaybackMode.HOLD_LAST)
                 RestPlaybackPlan.holdLast(notes) else notes
+            // Rest-skipping applies only to live pitch conversion, not score
+            // test tones. Keep written rests untouched in the saved score.
+            val restSkipDistances = if (voiceMode && !directMic && restMode == RestPlaybackMode.SKIP_TO_NEXT)
+                RestPlaybackPlan.stepsUntilNextNote(notes) else null
             val captured = ShortArray(FRAME)
             val rawNote = ScoreNote("—", null)
             val networkFrame = ByteArray(FRAME * 2)
@@ -188,6 +207,9 @@ class AudioEngine(
             // Separate from the microphone clock. Audio capture and output
             // continue uninterrupted while the score clock is paused.
             var scoreSampleCount = 0L
+            // Extra musical beats passed when skipping rests; the audio clock
+            // itself continues at its original pace with no skipped samples.
+            var skippedRestSteps = 0L
             var scoreVoiceHoldFrames = 0  // 5 x 20ms quiet-frame grace period
             val testSynth = if (voiceMode) null else ScoreToneSynth(notes, bpm, RATE)
             // Advance the score using the actual PCM sample clock, not wall time.
@@ -232,15 +254,31 @@ class AudioEngine(
                 // Keep the output gate independent from score activity. When
                 // the noise gate is OFF, enabling the score pause option must
                 // not alter the standard shifter's existing onset/mute logic.
-                val scoreVoice = if (!pauseScoreClock) false else if (gate != null) earlyVoice
+                // The pause-on-silence option is the only mode with a startup
+                // grace period. Do not carry any activity/hold time detected
+                // during startup into the score clock after the 300ms boundary.
+                val scoreStartupGrace = pauseScoreClock && sampleCount < scoreStartupGraceSamples
+                val scoreVoice = if (!pauseScoreClock || scoreStartupGrace) false
+                    else if (gate != null) earlyVoice
                     else scoreActivityDetector!!.frameHasVoice(inputRms, trackedPitch != null)
-                // Start advancing on the FIRST voice-bearing input frame, not
-                // after YIN settles. After voice ends, tolerate a brief gap
-                // so natural syllable transitions do not chatter the clock.
+                // Start advancing on the FIRST voice-bearing input frame after
+                // the grace period, without waiting for YIN to settle. Once
+                // speaking, allow short syllable gaps as before.
                 if (pauseScoreClock && scoreVoice) scoreVoiceHoldFrames = 5
-                val advanceScore = !pauseScoreClock || scoreVoiceHoldFrames > 0
+                val advanceScore = !pauseScoreClock ||
+                    (!scoreStartupGrace && scoreVoiceHoldFrames > 0)
                 val scoreClock = if (pauseScoreClock) scoreSampleCount else sampleCount
-                val step = if (directMic) 0L else (scoreClock / samplesPerStep).toLong()
+                var step = if (directMic) 0L else
+                    (scoreClock / samplesPerStep).toLong() + skippedRestSteps
+                if (restSkipDistances != null) {
+                    val toSkip = restSkipDistances[(step % notes.size).toInt()]
+                    if (toSkip > 0) {
+                        // Jump whole rest beats, including across the loop end.
+                        // Keep the fractional time of the current beat intact.
+                        skippedRestSteps += toSkip
+                        step += toSkip
+                    }
+                }
                 val noteIndex = if (directMic) 0 else (step % notes.size).toInt()
                 val note = if (directMic) rawNote else notes[noteIndex]
                 val targetNote = if (directMic) note else heldNotes[noteIndex]

@@ -15,10 +15,10 @@
     <string name="ui_012">音質改善（類PSOLA）</string>
     <string name="ui_013">Rubber Band（保留共振峰）</string>
     <string name="ui_014">Rubber Band（尚未安裝，需先設定）</string>
-    <string name="ui_015">僅可於停止時切換。安裝Rubber Band後可嘗試保留人聲共振峰。</string>
+    <string name="ui_015">僅可於停止時切換。</string>
     <string name="ui_016">無聲時抑制雜訊（建議）</string>
     <string name="ui_017">優先自然人聲（音高接近原聲時不重新合成；實驗性）</string>
-    <string name="ui_018">與目標音高相差15音分內時優先原聲，超過25音分後恢復變調。僅適用標準／類PSOLA。關閉可比較v0.8.6的效果。</string>
+    <string name="ui_018">與目標音高相差15音分內時優先原聲，超過25音分後恢復變調。僅適用標準／類PSOLA。</string>
     <string name="ui_019">原聲監聽（供音效比較）</string>
     <string name="ui_020">音高轉換倍率範圍</string>
     <string name="ui_021">藍色＝低音下限，綠色＝高音上限。拖曳兩側滑桿調整。舊設定為0.50～3.50倍；範圍越廣，音質越容易失真。</string>
@@ -26,7 +26,7 @@
     <string name="ui_023">直接輸出原聲</string>
     <string name="ui_024">靜音</string>
     <string name="ui_025">維持上一個音高</string>
-    <string name="ui_026">上一音高也可從循環結尾延續。測試音的休止符一律靜音。</string>
+    <string name="ui_026">上一音高也可從循環結尾延續。</string>
     <string name="ui_027">輸出增益</string>
     <string name="ui_028">調整輸出增益</string>
     <string name="ui_029">同時適用於手機播放與傳送至電腦。0 dB為原始音量，可於播放中調整。增益過高可能產生雜訊及回授，峰值限制可避免破音。</string>
@@ -41,9 +41,9 @@
     <string name="ui_038">傳送測試音至電腦</string>
     <string name="ui_039">將變調後的麥克風音訊傳送至電腦</string>
     <string name="ui_040">直接傳送麥克風原聲至電腦</string>
-    <string name="ui_041">監控狀態</string>
+    <string name="ui_041">除錯監控</string>
     <string name="ui_042">待機中。可在五線譜編輯器試聽樂譜。手機播放請設定Android媒體輸出裝置；傳送至電腦前請先啟動接收程式。</string>
-    <string name="ui_043">注意：測試版可能發生音質劣化或雜訊。請先調低音量，並讓麥克風遠離喇叭以免產生回授。離開應用程式後會停止。</string>
+    <string name="ui_043">注意：請先調低音量，並讓麥克風遠離喇叭以免產生回授。離開應用程式後會停止。</string>
     <string name="ui_044">休止符處理方式</string>
     <string name="ui_045">取消</string>
     <string name="ui_046">未儲存</string>
@@ -105,10 +105,10 @@
     <string name="ui_102">依BPM播放8拍倒數後，每拍覆寫一個音符。未錄製的拍子保持不變。可復原錄音結果。</string>
     <string name="ui_103">開始錄音</string>
     <string name="ui_104">已取消錄音</string>
-    <string name="ui_105">◀ 左右移動樂譜 ▶</string>
+    <string name="ui_105">左右移動樂譜</string>
     <string name="ui_106">哼唱／吹口哨產生樂譜（僅覆寫錄製的拍子）</string>
     <string name="ui_107">錄音開始前剩餘拍數</string>
-    <string name="ui_108">8拍倒數聲 → 麥克風錄音 → 逐拍轉換音符。支援60～500 BPM。</string>
+    <string name="ui_108">8拍倒數聲 → 麥克風錄音 → 逐拍轉換音符。</string>
     <string name="ui_109">▶ 從開頭播放</string>
     <string name="ui_110">插入／刪除拍子（移動後續音符）</string>
     <string name="ui_111">插入休止符\n（後續音符後移1拍）</string>
@@ -139,7 +139,7 @@
     <string name="ui_136">休止符</string>
     <string name="ui_137">下一拍 ▶</string>
     <string name="ui_138">輸入音符後自動移到下一拍</string>
-    <string name="ui_139">最多保留30筆復原紀錄。新增／拖曳音符、改為休止符時不會自動建立紀錄。請用頂部「↰」暫存目前狀態。</string>
+    <string name="ui_139">復原紀錄最多30筆。新增／拖曳音符、改為休止符時不會自動建立紀錄。</string>
     <string name="ui_140">樂譜</string>
     <string name="ui_141">將目前樂譜暫存為復原紀錄</string>
     <string name="ui_142">返回</string>
@@ -213,7 +213,7 @@
     <string name="ui_dynamic_022">錄音中：第{0}小節、第{1}拍（{2} BPM）</string>
     <string name="ui_dynamic_023">從第{0}小節第{1}拍開始錄製。</string>
     <string name="ui_dynamic_024">選擇音階與八度（目前八度：{0}）</string>
-    <string name="ui_dynamic_025">◀ 樂譜位置：第{0}／{1}小節 ▶</string>
+    <string name="ui_dynamic_025">樂譜位置：第{0}／{1}小節</string>
     <string name="ui_dynamic_026">保留至第{0}小節，刪除後續{1}拍（{2}個音符）。</string>
     <string name="ui_dynamic_027">已將{0}個音符降低一個八度</string>
     <string name="ui_dynamic_028">已將{0}個音符升高一個八度</string>
@@ -259,11 +259,16 @@
     <string name="ui_dynamic_033">移動{0}將超出C1～B6範圍，樂譜未變更。</string>
     <string name="ui_dynamic_034">麥克風讀取錯誤：{0}</string>
     <string name="ui_dynamic_035">喇叭輸出錯誤：{0}</string>
-    <string name="ui_224">未偵測到人聲時暫停樂譜</string>
+    <string name="ui_224">沒有語音輸入時暫停樂譜</string>
     <string name="theme_setting">顯示主題</string>
     <string name="theme_auto_short">自動</string>
     <string name="theme_auto">自動（依裝置設定）</string>
     <string name="theme_light">淺色</string>
     <string name="theme_dark">深色</string>
     <string name="theme_switch_stopped">請先停止播放再切換主題。</string>
+    <string name="ui_225">顯示前一小節</string>
+    <string name="ui_226">顯示後一小節</string>
+    <string name="ui_227">↰ 暫存</string>
+    <string name="ui_receiver_not_started">請先啟動接收程式（WindowsReceiver）。</string>
+    <string name="ui_228">跳至下一個音符</string>
 </resources>

@@ -7,4 +7,7 @@
     <string name="theme_light">ライト</string>
     <string name="theme_dark">ダーク</string>
     <string name="theme_switch_stopped">テーマの切り替えは停止中のみ行えます</string>
+    <string name="ui_225">前の小節を表示</string>
+    <string name="ui_226">次の小節を表示</string>
+    <string name="ui_227">↰一時保存</string>
 </resources>

@@ -113,16 +113,24 @@ class MainActivity : Activity() {
         @Suppress("DEPRECATION")
         editorHistory = lastNonConfigurationInstance as? PianoRollEditor.HistoryCarry
         engine = AudioEngine(
-            onStatus = { status -> runOnUiThread { if (active) renderStatus(status) } },
+            onStatus = { status -> runOnUiThread {
+                if (active && lastAudioError == null) renderStatus(status)
+            } },
             onError = { error -> runOnUiThread {
                 lastAudioError = error
-                info.text = "音声エラー: $error\n機種や音声経路によって48kHzが使えない場合があります。"
-                Toast.makeText(this, UiLanguage.text(this, "音声エラーが発生しました"), Toast.LENGTH_LONG).show()
+                val receiverMissing = error == AudioEngine.RECEIVER_NOT_STARTED
+                showMonitorError(if (receiverMissing) error else
+                    "音声エラー: $error\n機種や音声経路によって48kHzが使えない場合があります。")
+                Toast.makeText(this, UiLanguage.text(this,
+                    if (receiverMissing) error else "音声エラーが発生しました"), Toast.LENGTH_LONG).show()
             } },
             onStopped = { runOnUiThread {
                 stoppingAudio = false
                 setRunning(false)
-                lastAudioError?.let { info.text = "音声エラー: $it\nエラー全文を共有してください。" }
+                lastAudioError?.let { error ->
+                    showMonitorError(if (error == AudioEngine.RECEIVER_NOT_STARTED) error else
+                        "音声エラー: $error\nエラー全文を共有してください。")
+                }
             } }
         )
         presetStore = ScorePresetStore(this)
@@ -179,6 +187,18 @@ class MainActivity : Activity() {
             setTextColor(color)
             if (bold) setTypeface(typeface, Typeface.BOLD)
         }
+
+    // Monitor messages use the normal theme foreground; errors alone are red.
+    private fun showMonitor(message: String) {
+        info.setTextColor(ink)
+        info.text = message
+    }
+
+    private fun showMonitorError(message: String) {
+        info.setTextColor(if (UiTheme.isDark(this)) Color.rgb(255, 105, 105)
+            else Color.rgb(198, 40, 40))
+        info.text = message
+    }
 
     private fun add(parent: LinearLayout, view: View, topDp: Int = 0) {
         parent.addView(view, LinearLayout.LayoutParams(
@@ -289,11 +309,11 @@ class MainActivity : Activity() {
         }, FrameLayout.LayoutParams(dp(32), ViewGroup.LayoutParams.MATCH_PARENT,
             Gravity.END or Gravity.CENTER_VERTICAL))
         add(root, engineSelector, 5)
-        add(root, label("切り替えは停止中のみ。Rubber Bandは導入後、声のフォルマント維持を試せます。",
+        add(root, label("切り替えは停止中のみ。",
             12f, color = muted), 2)
         val settings = getSharedPreferences("utamaru_audio_settings", MODE_PRIVATE)
         pauseScoreOnSilenceCheck = LocalizedCheckBox(this).apply {
-            text = "音声がない間は楽譜を一時停止"
+            text = "音声入力が無い間は楽譜を一時停止"
             textSize = 14f
             isChecked = settings.getBoolean("pause_score_on_silence", true)
             setOnCheckedChangeListener { _, checked ->
@@ -317,7 +337,7 @@ class MainActivity : Activity() {
         }
         add(root, naturalVoiceCheck, 5)
         add(root, label("元の音程との差が15セント以内なら原音を優先し、25セント以上で変換音へ戻します。" +
-            "標準・PSOLA風のみ。OFFでv0.8.6相当の音程変換と比較できます。", 12f, color = muted), 2)
+            "標準・PSOLA風のみ。", 12f, color = muted), 2)
         originalMonitorCheck = LocalizedCheckBox(this).apply {
             text = "原音モニター（変換を聴き比べる診断用）"
             textSize = 14f
@@ -359,7 +379,7 @@ class MainActivity : Activity() {
             setOnClickListener { chooseRestMode() }
         }
         add(root, restModeButton, 4)
-        add(root, label("直前の音程はループ末尾からも引き継ぎます。テスト音の休符は常に無音です。",
+        add(root, label("直前の音程はループ末尾からも引き継ぎます。",
             12f, color = muted), 2)
 
         add(root, label("出力ブースト", 15f, true), 17)
@@ -441,12 +461,12 @@ class MainActivity : Activity() {
             setOnClickListener { toggleMicButton(OutputTarget.PC, directMic = true) }
         }
         add(root, startRawPc, 5)
-        add(root, label("モニター", 17f, true), 23)
+        add(root, label("デバッグモニター", 17f, true), 23)
         info = label("待機中。楽譜の試聴は五線譜編集画面から行えます。スマホ再生はAndroidのメディア出力先を設定。PC出力は受信プログラムを先に起動してください。", 15f)
             .apply { setLineSpacing(dp(5).toFloat(), 1.0f) }
         add(root, info, 9)
         add(root, label(
-            "注意: 実験版では声質・ノイズが悪化する場合があります。最初は音量を小さめに。" +
+            "注意: 最初は音量を小さめに。" +
                 "スピーカーの音をマイクが拾うとハウリングするため、距離を離してください。" +
                 "アプリを離れると停止します。", 12f, color = muted
         ), 23)
@@ -798,7 +818,7 @@ class MainActivity : Activity() {
             if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
                 begin(voiceMode = true, target = pendingTarget, directMic = pendingDirectMic)
             } else {
-                info.text = "マイク権限がないため音声変換できません。設定から許可してください。"
+                showMonitorError("マイク権限がないため音声変換できません。設定から許可してください。")
             }
         }
     }
@@ -830,12 +850,12 @@ class MainActivity : Activity() {
             stoppingAudio = false
             if (target == OutputTarget.PC) speakerWarningShown = false
             lastAudioError = null
-            info.text = if (directMic) "生マイクを起動中…（音程変換・ノイズゲートなし）" else
+            showMonitor(if (directMic) "生マイクを起動中…（音程変換・ノイズゲートなし）" else
                 UiLanguage.text(this, "起動中…  |  ${score.size}音  |  $bpm BPM  |  音質: ${UiLanguage.text(this, voiceEngine.caption)}") +
-                if (voiceMode) UiLanguage.text(this, "  |  範囲${pitchRange.minimum}〜${pitchRange.maximum}倍") else ""
+                if (voiceMode) UiLanguage.text(this, "  |  範囲${pitchRange.minimum}〜${pitchRange.maximum}倍") else "")
             setRunning(true)
         } catch (e: Exception) {
-            info.text = UiLanguage.text(this, e.message ?: "開始に失敗しました")
+            showMonitorError(e.message ?: "開始に失敗しました")
         }
     }
 
@@ -843,7 +863,7 @@ class MainActivity : Activity() {
         fun hz(n: Double?): String =
             if (n == null) "検出なし" else String.format(Locale.JAPAN, "%.1f Hz", n)
         val multiplier = s.ratio?.let { String.format(Locale.JAPAN, "%.3f 倍", it) } ?: "—"
-        info.text = if (s.mode == "生マイク")
+        showMonitor(if (s.mode == "生マイク")
             "動作中: 生マイク（音程変換なし）\nノイズ抑制: ${s.noiseGate}\n出力先: ${s.route}" else
             "動作中: ${s.mode}\n" +
                 "現在の音符: ${s.note}\n" +
@@ -852,7 +872,7 @@ class MainActivity : Activity() {
                 "変換倍率: $multiplier（${pitchRange.minimum}〜${pitchRange.maximum}倍）\n" +
                 "変換方式: ${s.qualityMode}  |  ノイズ抑制: ${s.noiseGate}\n" +
                 "声質比較: ${s.naturalVoice}\n" +
-                "出力先: ${s.route}"
+                "出力先: ${s.route}")
         // Reset warning eligibility when an external output becomes the actual route.
         // A subsequent switch back to the internal speaker must warn again.
         if (activeOutputTarget == OutputTarget.ANDROID &&
@@ -915,7 +935,8 @@ class MainActivity : Activity() {
         if (value) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            if (!isFinishing) info.text = "停止しました。再開できます。"
+            if (!isFinishing && lastAudioError == null)
+                showMonitor("停止しました。再開できます。")
         }
     }
 
@@ -925,7 +946,7 @@ class MainActivity : Activity() {
         // Disable only the active stop button until AudioEngine reports completion.
         setRunning(true)
         engine.stop()
-        info.text = "停止中…"
+        showMonitor("停止中…")
     }
 
     override fun onStop() {
