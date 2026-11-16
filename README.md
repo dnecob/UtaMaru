@@ -1,6 +1,6 @@
 # 唄まる -UtaMaru-
 
-### Supported Languages
+### Supported Languages 🇯🇵 🇹🇼 🇭🇰 🇬🇧 🇺🇲 🇦🇺
 The app itself supports Japanese, Traditional Chinese, and English.<br>
 You can select your preferred language manually or use Auto to follow your device's language settings.<br>
 Development is focused on improving audio quality and stability.
