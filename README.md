@@ -20,7 +20,8 @@ Development is focused on improving audio quality and stability.
 広告無し、トラッカー無し。<br>
 Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセスもしません。
 
-⚠現在、音質・安定性の改善を優先して開発中です。⚠
+⚠現在、音質・安定性の改善を優先して開発中です。⚠<br>
+変換後の音のザラつきやビビリの改善が上手くいかず行き詰まってる。。
 
 ## ダウンロード Download
 
