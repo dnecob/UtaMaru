@@ -24,8 +24,8 @@ Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセス�
 
 ## ダウンロード
 
-📲[UtaMaru_v0.8.8.0.apk](https://github.com/dnecob/UtaMaru/releases/download/v0.8.8.0/UtaMaru.v0.8.8.0.apk)<br>
-💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.8.0/WindowsReceiver.zip)
+📲[UtaMaru_v0.8.9.2.apk](https://github.com/dnecob/UtaMaru/releases/download/v0.8.9.2/UtaMaru.v0.8.9.2.apk)<br>
+💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.9.2/WindowsReceiver.zip)
 
 WindowsReceiverはスマホをマイクとしてWindows PCに接続する場合のみ必要。<br>
 WindowsReceiver is only required if you want to use your smartphone as a microphone for your Windows PC.
@@ -88,9 +88,6 @@ VB-CABLEとADBは同梱していません。公式配布元から入手してく
 - [Android SDK Platform-Tools（Google公式）](https://developer.android.com/tools/releases/platform-tools?hl=ja)
 
 ## Tips
-
-五線譜編集画面の譜面の左右スライドはシークバーでも出来ますが<br>
-譜面の上下端(かなり狭いですが)を左右にスワイプする事でスライドさせることも出来ます。
 
 歌っている様に聞こえる為には、入力する声の音域と楽譜の音域をある程度合わせる必要があります。<br>
 楽譜編集画面の録音機能で普段の声の音域を測り<br>
