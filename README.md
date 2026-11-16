@@ -1,23 +1,23 @@
 # 唄まる -UtaMaru-
 
-### Supported Languages
+### Supported Languages 🇯🇵 🇹🇼 🇭🇰 🇬🇧 🇺🇲 🇦🇺
 The app itself supports Japanese, Traditional Chinese, and English.<br>
 You can select your preferred language manually or use Auto to follow your device's language settings.<br>
 Development is focused on improving audio quality and stability.
 
-🎵楽譜で指定した音程へ、Androidスマートフォンのマイク入力音声をリアルタイムで変換・出力。<br>
+🎵Androidスマートフォンのマイク入力音声を楽譜で指定した音程へリアルタイムで変換・出力。<br>
 　普通に喋っているだけで歌っている様になるアプリです。
  
 🎶記録された楽譜を繰り返し再生しながら音階に合わせて声の音程を合わせ、スマホで再生したり<br>
 　WindowsPC用USB/Wi-Fiマイクとしての利用も可能。<br>
-　入力音声をそのまま送信・出力するモードも搭載しています。
+　鼻歌や口笛などで楽譜を作成することも可能です。
 
 👇️楽譜画像やMIDIから唄まる用の楽譜に変換する方法も最下部に載せてあります👇️
 
 - 対応OS：**Android 12以降（API 31以上）**<br>
 - PCマイク機能：**Windows 10/11（64bit）**、USBまたはWi-Fi接続
 
-広告無し・トラッカー無し。<br>
+広告無し、トラッカー無し。<br>
 Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセスもしません。
 
 ⚠現在、音質・安定性の改善を優先して開発中です。⚠
@@ -25,10 +25,10 @@ Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセス�
 ## ダウンロード
 
 📲[UtaMaru_v0.8.8.0.apk](https://github.com/dnecob/UtaMaru/releases/download/v0.8.8.0/UtaMaru.v0.8.8.0.apk)<br>
-💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.7.21/WindowsReceiver.zip)
+💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.8.0/WindowsReceiver.zip)
 
-WindowsReceiver.zipはスマホをマイクとしてWindows PCに接続する場合のみ必要。<br>
-WindowsReceiver.zip is only required if you want to use your smartphone as a microphone for your Windows PC.
+WindowsReceiverはスマホをマイクとしてWindows PCに接続する場合のみ必要。<br>
+WindowsReceiver is only required if you want to use your smartphone as a microphone for your Windows PC.
 
 スマホ単体で使用する場合は**WindowsReceiver、ADB、VB-CABLEは必要ありません**。
 
@@ -42,7 +42,7 @@ Optional donations are welcome!!
 
 1. APKをAndroid 12以降の端末にインストールして起動し、マイクの使用を許可します。<br>
 2. 楽譜を編集する場合は音階を文字列で入力するか、**「♫ 五線譜で楽譜を編集」** から音符やBPMを編集します。<br>
-3. 音声変換エンジンを選びます。最初は **「標準」** での動作確認をおすすめします。<br>
+3. 音声変換エンジンを選びます。最初は **標準** での動作確認をおすすめします。<br>
 4. **「マイク入力を音程変換して再生」** を押して開始します。変換せずに再生する場合は **「マイク入力をそのまま再生」** を押します。<br>
 5. 停止するときは、使用中のボタンをもう一度押します。
 
@@ -50,7 +50,7 @@ Optional donations are welcome!!
 
 ### 楽譜の入力形式（文字列で編集する場合）
 
-- 音名 `C D E F G A B` と、任意の `#`（シャープ）、`b`（フラット）、オクターブ番号 `1`～`6` を並べます。例：`C4` `F#4` `Bb5`。<br>
+- 音名 `C D E F G A B` と、任意の `#`（シャープ）、オクターブ番号 `1`～`6` を並べます。例：`C4` `F#4` `Bb5`。<br>
 - オクターブ番号を省略すると `4` になります（例：`C` は `C4`）。<br>
 - **音符1個＝1拍**。音符同士の区切り文字は不要です。<br>
 - **半角スペース1個＝休符1拍**。前後の空白も休符として扱われます。<br>
@@ -58,7 +58,7 @@ Optional donations are welcome!!
 - 最大4,096拍。4拍子の小節が途中で終わる場合は、末尾が休符で補完されます。<br>
 - BPMは五線譜編集画面で設定します（60～500、初期値200）。
 
-✨️楽譜は文字列を公開、コピー＆ペーストして他の利用者と共有できます。 
+✨️楽譜は文字列を公開、コピー＆ペーストして他の利用者と共有できます。
 
 ### 音声設定
 
@@ -75,7 +75,7 @@ Optional donations are welcome!!
 WindowsReceiverを使ってPCに音声を送り、VB-CABLE経由でDiscord・OBSなどの入力に利用できます。
 
 詳しいセットアップ手順は **[WindowsReceiver/ReadMe.txt](WindowsReceiver/ReadMe.txt)** を参照してください。<br>
-一応`START_PC_USB.bat`や`START_PC_WIFI.bat`を起動するだけで足りないファイルにチェックが入り<br>
+一応`START_PC_USB.bat`や`START_PC_WIFI.bat`を起動するだけで必須ファイルにチェックが入り<br>
 足りなければそのDL先へ移動できる様にしてあります。
 
 - USB接続：ADB（Google SDK Platform-Tools）が必要。アプリのPC接続先は `127.0.0.1`<br>
@@ -86,6 +86,15 @@ VB-CABLEとADBは同梱していません。公式配布元から入手してく
 
 - [VB-CABLE（公式）](https://vb-audio.com/Cable/)<br>
 - [Android SDK Platform-Tools（Google公式）](https://developer.android.com/tools/releases/platform-tools?hl=ja)
+
+## Tips
+
+五線譜編集画面の譜面の左右スライドはシークバーでも出来ますが<br>
+譜面の上下端(かなり狭いですが)を左右にスワイプする事でスライドさせることも出来ます。
+
+歌っている様に聞こえる為には、入力する声の音域と楽譜の音域をある程度合わせる必要があります。<br>
+楽譜編集画面の録音機能で普段の声の音域を測り<br>
+その音域に近くなるように【全音符を1オクターブ下げる】ボタンなどで合わせていくと良いでしょう。
 
 ## 開発・ビルド
 
@@ -113,8 +122,9 @@ Copyright (C) 2026 赫ねこ
 本リポジトリにはRubber Bandのソースコード一式を含めています。<br>
 配布するAPKに対応するソースコードも提供します。
 
-WindowsReceiverのソースコードは WindowsReceiver/src/main.go に含まれています。
-WindowsReceiverはGPL-2.0-or-laterで公開しています。ビルド手順およびライセンス情報は WindowsReceiver/SOURCE_AND_LICENSE.txt を参照してください。
+WindowsReceiverのソースコードは WindowsReceiver/src/main.go に含まれています。<br>
+WindowsReceiverはGPL-2.0-or-laterで公開しています。<br>
+ビルド手順およびライセンス情報は WindowsReceiver/SOURCE_AND_LICENSE.txt を参照してください。
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 ### 楽譜画像 ▷ 唄まる用楽譜
@@ -159,7 +169,8 @@ WindowsReceiverはGPL-2.0-or-laterで公開しています。ビルド手順お�
 音符と音符の間にスペース、カンマ、改行、区切り文字を入れないでください。<br>
 出力例：`C2D2E2G2C3D3E3G3C4`<br>
 各音符は原則として1拍分として扱い、音符の長さは文字列に含めません。同じ音が連続する場合も省略しないでください。<br>
-必要な1拍分の休符は半角スペース1つで表してください。ただし、原曲の細かなリズムを1拍単位に正確に変換できない場合は、無理に休符を補わず、音符の順序を優先してください。<br>
+必要な1拍分の休符は半角スペース1つで表してください。<br>
+ただし、原曲の細かなリズムを1拍単位に正確に変換できない場合は、無理に休符を補わず、音符の順序を優先してください。<br>
 オクターブ変更などの移調は行わず、原曲の音程を維持してください。<br>
 各パートについて、最初の4,096音を出力してください。<br>
 画像の場合、読み取れない音符は推測で埋めず、その位置を報告してください。<br>
@@ -167,7 +178,3 @@ WindowsReceiverはGPL-2.0-or-laterで公開しています。ビルド手順お�
 各パートの名前と音符数を示した後、変換した文字列をそれぞれコードブロックで出力してください。<br>
 変換文字列には説明文を混ぜず、そのままコピーして使えるようにしてください。<br>
 🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺🔺
-
-※歌っている様に聞こえる為には、入力する声の音域と楽譜の音域をある程度合わせる必要があります。<br>
-楽譜編集画面の録音機能で普段の声の音域を測り<br>
-その音域に近くなるように【全音符を1オクターブ下げる】ボタンで合わせていくと良いでしょう。
