@@ -22,7 +22,7 @@ Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセス�
 
 ⚠現在、音質・安定性の改善を優先して開発中です。⚠
 
-## ダウンロード
+## ダウンロード Download
 
 📲[UtaMaru_v0.8.9.2.apk](https://github.com/dnecob/UtaMaru/releases/download/v0.8.9.2/UtaMaru.v0.8.9.2.apk)<br>
 💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.9.2/WindowsReceiver.zip)
