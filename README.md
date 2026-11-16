@@ -1,4 +1,4 @@
-# 唄まる -UtaMaru-
+# 唄まる -UtaMaru-# v0.8.9.2 2026.11/16
 
 ### Supported Languages 🇯🇵 🇹🇼 🇭🇰 🇬🇧 🇺🇲 🇦🇺
 The app itself supports Japanese, Traditional Chinese, and English.<br>
