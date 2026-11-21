@@ -34,7 +34,6 @@
     <string name="ui_031">Use on phone (speaker / headphones)</string>
     <string name="ui_032">Play microphone with pitch correction</string>
     <string name="ui_033">Play unmodified microphone</string>
-    <string name="ui_034">A feedback warning appears if no external output is detected, or if audio is actually routed to the built-in speaker.</string>
     <string name="ui_035">PC microphone (USB / Wi-Fi)</string>
     <string name="ui_036">USB: use 127.0.0.1. Wi-Fi: enter the PC IPv4 address. Start the PC receiver first.</string>
     <string name="ui_037">PC address (e.g. 192.168.1.10)</string>
@@ -162,7 +161,7 @@
     <string name="ui_159">Noise gate:</string>
     <string name="ui_160">Voice comparison:</string>
     <string name="ui_161">Running: raw mic (no pitch correction)</string>
-    <string name="ui_162">Starting raw mic (no pitch correction or noise gate)…</string>
+    <string name="ui_162">Starting raw mic (without pitch shifting)…</string>
     <string name="ui_163">Starting…</string>
     <string name="ui_164">Engine:</string>
     <string name="ui_165">Silent</string>
@@ -269,6 +268,9 @@
     <string name="ui_225">Show previous measure</string>
     <string name="ui_226">Show next measure</string>
     <string name="ui_227">↰ Save state</string>
-    <string name="ui_receiver_not_started">Start the receiving program (WindowsReceiver) first.</string>
+    <string name="ui_receiver_not_started">Start WindowsReceiver and also check the connection to your PC (USB or Wi-Fi).</string>
     <string name="ui_228">Skip to next note</string>
+    <string name="gate_threshold_title">Noise gate threshold</string>
+    <string name="gate_threshold_value">Noise gate threshold: %1$d%% (100%% = original)</string>
+    <string name="gate_threshold_explanation">Lower values pass quieter consonants but may also pass noise. Adjust when stopped.</string>
 </resources>

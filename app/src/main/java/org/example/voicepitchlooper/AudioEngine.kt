@@ -25,7 +25,7 @@ class AudioEngine(
     companion object {
         const val RATE = 48000
         const val PC_PORT = 50005
-        const val RECEIVER_NOT_STARTED = "受信プログラム(WindowsReceiver)を先に起動してください。"
+        const val RECEIVER_NOT_STARTED = "受信プログラム(WindowsReceiver)を起動し、PCとの接続（USBまたはWi-Fi）も確認してください。"
         private const val FRAME = 960  // exactly 20 ms of 48kHz 16-bit mono PCM
         private const val SCORE_STARTUP_GRACE_MS = 300L
     }
@@ -52,11 +52,13 @@ class AudioEngine(
         outputBoostDb = value
     }
     private var worker: Thread? = null
+    @Volatile private var activeCapture: VoiceInputLookahead? = null
 
     @Synchronized
     fun start(notes: List<ScoreNote>, bpm: Int, voiceMode: Boolean,
               outputTarget: OutputTarget = OutputTarget.ANDROID, pcHost: String = "127.0.0.1",
               voiceEngine: VoiceEngine = VoiceEngine.STANDARD, noiseGateEnabled: Boolean = true,
+              noiseGateThresholdPercent: Int = 100,
               restMode: RestPlaybackMode = RestPlaybackMode.HOLD_LAST,
               pauseScoreOnSilence: Boolean = true,
               maxPitchRatio: Double = 3.5, minPitchRatio: Double = 0.5,
@@ -66,6 +68,7 @@ class AudioEngine(
         require((notes.isNotEmpty() || (voiceMode && directMic)) && bpm in 30..500)
         require(!directMic || voiceMode) { "生マイクは音声入力モードのみ有効です" }
         PitchRange(minPitchRatio, maxPitchRatio) // validate before starting worker
+        require(noiseGateThresholdPercent in 50..300)
         if (voiceMode && !directMic && voiceEngine == VoiceEngine.RUBBER_BAND) {
             check(RubberBandNative.isAvailable) {
                 "Rubber Bandが未導入です。SETUP_RUBBERBAND.bat実行後にAPKを再ビルドしてください。"
@@ -76,7 +79,7 @@ class AudioEngine(
         worker = Thread {
             try {
                 runAudio(notes, bpm, voiceMode, outputTarget, pcHost, voiceEngine,
-                    noiseGateEnabled, restMode, pauseScoreOnSilence, maxPitchRatio, minPitchRatio,
+                    noiseGateEnabled, noiseGateThresholdPercent, restMode, pauseScoreOnSilence, maxPitchRatio, minPitchRatio,
                     nearUnityEnabled, originalMonitor, directMic)
             } catch (e: Exception) {
                 if (running) {
@@ -95,12 +98,16 @@ class AudioEngine(
         }.apply { name = "VoicePitchAudio"; start() }
     }
 
-    fun stop() { running = false }
+    fun stop() {
+        running = false
+        activeCapture?.finish() // wake audio worker if it is waiting on microphone PCM
+    }
 
     @SuppressLint("MissingPermission")  // RECORD_AUDIO checked by MainActivity.
     private fun runAudio(notes: List<ScoreNote>, bpm: Int, voiceMode: Boolean,
                          outputTarget: OutputTarget, pcHost: String, voiceEngine: VoiceEngine,
-                         noiseGateEnabled: Boolean, restMode: RestPlaybackMode,
+                         noiseGateEnabled: Boolean, noiseGateThresholdPercent: Int,
+                         restMode: RestPlaybackMode,
                          pauseScoreOnSilence: Boolean,
                          maxPitchRatio: Double, minPitchRatio: Double,
                          nearUnityEnabled: Boolean, originalMonitor: Boolean,
@@ -110,6 +117,8 @@ class AudioEngine(
         var record: AudioRecord? = null
         var pcSocket: Socket? = null
         var rubberShifter: RubberBandNative? = null
+        var micReader: Thread? = null
+        var inputLookahead: VoiceInputLookahead? = null
         try {
             if (outputTarget == OutputTarget.ANDROID) {
                 val format = AudioFormat.Builder()
@@ -169,8 +178,18 @@ class AudioEngine(
                     // activity at the corresponding output time and preserve
                     // low-energy breathy endings.
                     VoiceNoiseGate(holdMillis = 300, releaseMillis = 120.0,
-                        outputDelaySamples = 8192, preserveBreathyTail = true)
-                } else VoiceNoiseGate() // Standard and raw mic remain unchanged.
+                        outputDelaySamples = 8192, preserveBreathyTail = true,
+                        thresholdPercent = noiseGateThresholdPercent)
+                } else if (directMic) {
+                    // Unlike pitch-converted voice, the raw microphone has no
+                    // pitch-based VAD. The standard 0.015 RMS threshold and
+                    // 150ms hold caused quiet syllables and small pauses to
+                    // disappear. Keep a gentler, raw-only gate; don't alter
+                    // the verified Standard/Improved/Rubber Band paths.
+                    VoiceNoiseGate(holdMillis = 450, releaseMillis = 180.0,
+                        preserveBreathyTail = true, rawMicMode = true,
+                        thresholdPercent = noiseGateThresholdPercent)
+                } else VoiceNoiseGate(thresholdPercent = noiseGateThresholdPercent)
             } else null
             // Voice activity is reused from the normal noise gate when enabled.
             // Otherwise keep a lightweight, independent input-level detector.
@@ -195,7 +214,11 @@ class AudioEngine(
             // test tones. Keep written rests untouched in the saved score.
             val restSkipDistances = if (voiceMode && !directMic && restMode == RestPlaybackMode.SKIP_TO_NEXT)
                 RestPlaybackPlan.stepsUntilNextNote(notes) else null
-            val captured = ShortArray(FRAME)
+            // All microphone paths (raw/shifted, phone/PC) use the same
+            // continuous full-frame capture and short pre-onset lookahead.
+            inputLookahead = if (voiceMode) VoiceInputLookahead(FRAME, 2) else null
+            activeCapture = inputLookahead
+            var captured = ShortArray(FRAME)
             val rawNote = ScoreNote("—", null)
             val networkFrame = ByteArray(FRAME * 2)
             val outputBooster = OutputBoostProcessor()
@@ -218,12 +241,55 @@ class AudioEngine(
             val startNs = System.nanoTime()
             var lastStatusNs = 0L
             record?.startRecording()
+            if (record != null) {
+                val microphone = record!!
+                val micBuffer = inputLookahead!!
+                micReader = Thread {
+                    try {
+                        Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
+                        while (running) {
+                            // AudioRecord may return a short positive read, even
+                            // with READ_BLOCKING. Accumulate the entire frame.
+                            val frame = ShortArray(FRAME)
+                            var filled = 0
+                            var zeroReads = 0
+                            while (running && filled < FRAME) {
+                                val read = microphone.read(frame, filled, FRAME - filled,
+                                    AudioRecord.READ_BLOCKING)
+                                if (read < 0) error("マイクの読み取りエラー: $read")
+                                if (read == 0) {
+                                    if (++zeroReads >= 4) error("マイクから音声データを取得できません")
+                                    continue
+                                }
+                                zeroReads = 0
+                                filled += read
+                            }
+                            if (running && filled == FRAME) micBuffer.enqueue(frame)
+                        }
+                    } catch (e: Exception) {
+                        if (running) micBuffer.fail(e)
+                    } finally {
+                        // Do not silently treat a stopped capture as silence.
+                        // If it ended unexpectedly, the main worker exits too.
+                        if (running) micBuffer.fail(
+                            IllegalStateException("マイク入力が予期せず停止しました"))
+                        else micBuffer.finish()
+                    }
+                }.apply { name = "UtaMaruMicInput"; start() }
+            }
             track?.play()
             while (running) {
                 val count: Int
+                var bufferedInputRms = 0.0
+                var upcomingInputRms = 0.0
                 if (voiceMode) {
-                    count = record!!.read(captured, 0, FRAME, AudioRecord.READ_BLOCKING)
-                    if (count <= 0) error("マイクの読み取りエラー: $count")
+                    // Continuous producer/consumer buffer is shared by direct
+                    // mic and all pitch engines, for phone and PC outputs.
+                    val inputFrame = inputLookahead!!.take() ?: break
+                    captured = inputFrame.samples
+                    bufferedInputRms = inputFrame.rms
+                    upcomingInputRms = inputFrame.futurePeakRms
+                    count = FRAME
                     if (!directMic) detector!!.push(captured, count)
                 } else {
                     count = FRAME
@@ -241,16 +307,13 @@ class AudioEngine(
                 val trackedPitch = lastPitch?.takeIf { now - lastPitchNs < 400_000_000L }
                 // Input RMS is evaluated once per microphone frame. No extra
                 // pitch analysis is needed for the pause-on-silence option.
-                var inputRms = 0.0
-                if (voiceMode && (gate != null || pauseScoreClock) && count > 0) {
-                    var power = 0.0
-                    for (i in 0 until count) {
-                        val sample = captured[i].toDouble() / 32768.0
-                        power += sample * sample
-                    }
-                    inputRms = kotlin.math.sqrt(power / count)
-                }
+                val inputRms = if (voiceMode) bufferedInputRms else 0.0
                 val earlyVoice = gate?.frameHasVoice(inputRms, trackedPitch != null) ?: false
+                // Only the TIMING of gate opening changes: upcoming frames are
+                // inspected with the existing threshold, without updating VAD
+                // state or changing noise-suppression strength/release settings.
+                val gateVoice = earlyVoice ||
+                    (gate?.hasUpcomingEnergyOnset(upcomingInputRms) ?: false)
                 // Keep the output gate independent from score activity. When
                 // the noise gate is OFF, enabling the score pause option must
                 // not alter the standard shifter's existing onset/mute logic.
@@ -268,25 +331,27 @@ class AudioEngine(
                 val advanceScore = !pauseScoreClock ||
                     (!scoreStartupGrace && scoreVoiceHoldFrames > 0)
                 val scoreClock = if (pauseScoreClock) scoreSampleCount else sampleCount
-                var step = if (directMic) 0L else
-                    (scoreClock / samplesPerStep).toLong() + skippedRestSteps
-                if (restSkipDistances != null) {
-                    val toSkip = restSkipDistances[(step % notes.size).toInt()]
-                    if (toSkip > 0) {
-                        // Jump whole rest beats, including across the loop end.
-                        // Keep the fractional time of the current beat intact.
-                        skippedRestSteps += toSkip
-                        step += toSkip
+                // The raw-microphone path does not use score timing or rest logic.
+                // Keep those computations exclusively in score-based modes.
+                val note: ScoreNote
+                val targetNote: ScoreNote
+                if (directMic) {
+                    note = rawNote
+                    targetNote = rawNote
+                } else {
+                    var step = (scoreClock / samplesPerStep).toLong() + skippedRestSteps
+                    if (restSkipDistances != null) {
+                        val toSkip = restSkipDistances[(step % notes.size).toInt()]
+                        if (toSkip > 0) {
+                            // Jump whole rest beats, including across the loop end.
+                            // Keep the fractional time of the current beat intact.
+                            skippedRestSteps += toSkip
+                            step += toSkip
+                        }
                     }
-                }
-                val noteIndex = if (directMic) 0 else (step % notes.size).toInt()
-                val note = if (directMic) rawNote else notes[noteIndex]
-                val targetNote = if (directMic) note else heldNotes[noteIndex]
-                val restSelection = when {
-                    note.frequency != null || restMode == RestPlaybackMode.HOLD_LAST ->
-                        RestOutputMixer.Selection.SHIFTED
-                    restMode == RestPlaybackMode.RAW_VOICE -> RestOutputMixer.Selection.RAW
-                    else -> RestOutputMixer.Selection.SILENCE
+                    val noteIndex = (step % notes.size).toInt()
+                    note = notes[noteIndex]
+                    targetNote = heldNotes[noteIndex]
                 }
                 val output: ShortArray
                 val ratio: Double?
@@ -304,7 +369,7 @@ class AudioEngine(
                             // through even while YIN collects its first period.
                             // The old behaviour is unchanged when gate is OFF.
                             mute = targetNote.frequency == null ||
-                                (trackedPitch == null && !earlyVoice),
+                                (trackedPitch == null && !gateVoice),
                             inputFundamentalHz = trackedPitch)
                         VoiceEngine.RUBBER_BAND -> rubberShifter!!.process(captured, count, lastRatio)
                     }
@@ -327,7 +392,7 @@ class AudioEngine(
                 if (voiceMode && directMic) {
                     // Process raw PCM in place before final gain and PC/Android output.
                     // OFF leaves captured samples untouched, as in the old raw mode.
-                    gate?.process(output, count, voiceDetected = earlyVoice)
+                    gate?.process(output, count, voiceDetected = gateVoice)
                 } else if (voiceMode) {
                     // Reuse the RMS already calculated for the pause/noise
                     // gate; only scan here when both options are disabled.
@@ -340,9 +405,16 @@ class AudioEngine(
                         kotlin.math.sqrt(sumSquares / count)
                     }
                     voiceDetected = trackedPitch != null && rms >= 0.008
-                    gate?.process(output, count, voiceDetected = earlyVoice)
+                    gate?.process(output, count, voiceDetected = gateVoice)
                     // Preserve the old stricter pitch-qualified detection for
                     // dry/wet volume matching; do not pump up unpitched noise.
+                    // Rest selection is relevant only to pitch-converted voice.
+                    val restSelection = when {
+                        note.frequency != null || restMode == RestPlaybackMode.HOLD_LAST ->
+                            RestOutputMixer.Selection.SHIFTED
+                        restMode == RestPlaybackMode.RAW_VOICE -> RestOutputMixer.Selection.RAW
+                        else -> RestOutputMixer.Selection.SILENCE
+                    }
                     restMixer!!.mix(output, captured, count, restSelection,
                         voiceDetected = voiceDetected)
                 }
@@ -358,9 +430,10 @@ class AudioEngine(
                         offset += wrote
                     }
                 } else {
-                    // Fixed frame size for Windows receiver; pad any partial microphone read with silence.
+                    // All modes produce a complete FRAME (960 samples).
+                    // The old partial-read zero padding is no longer needed.
                     for (i in 0 until FRAME) {
-                        val v = if (i < count) output[i].toInt() else 0
+                        val v = output[i].toInt()
                         networkFrame[i * 2] = v.toByte()
                         networkFrame[i * 2 + 1] = (v ushr 8).toByte()
                     }
@@ -408,8 +481,18 @@ class AudioEngine(
                 }
             }
         } finally {
-            try { rubberShifter?.close() } catch (_: Exception) { }
+            // Keep running intact until the outer worker handles exceptions;
+            // clearing it here would hide all real audio errors from onError.
+            inputLookahead?.finish()
+            activeCapture = null
             try { record?.stop() } catch (_: Exception) { }
+            try { micReader?.join(500L) } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+            val dropped = inputLookahead?.droppedFrameCount() ?: 0L
+            if (dropped > 0L) android.util.Log.w("UtaMaruAudio",
+                "Microphone FIFO overflow: $dropped frame(s) dropped while output was stalled")
+            try { rubberShifter?.close() } catch (_: Exception) { }
             record?.release()
             try { track?.pause(); track?.flush(); track?.stop() } catch (_: Exception) { }
             track?.release()

@@ -67,6 +67,15 @@ class MainActivity : Activity() {
     private lateinit var languageSpinner: Spinner
     private lateinit var pauseScoreOnSilenceCheck: CheckBox
     private lateinit var noiseGateCheck: CheckBox
+    private lateinit var noiseGateThresholdLabel: TextView
+    private lateinit var noiseGateThresholdSlider: SeekBar
+    private var noiseGateThresholdPercent: Int = 100
+    private companion object {
+        const val AUDIO_PREFS = "utamaru_audio_settings"
+        const val SAVED_PC_HOST = "pc_host"
+        const val GATE_THRESHOLD_PERCENT = "noise_gate_threshold_percent"
+        const val DEFAULT_PC_HOST = "127.0.0.1"
+    }
     private lateinit var naturalVoiceCheck: CheckBox
     private lateinit var originalMonitorCheck: CheckBox
     private lateinit var pitchRangeSlider: PitchRangeSlider
@@ -98,6 +107,7 @@ class MainActivity : Activity() {
         outState.putInt("ui_engine", voiceEngineSpinner.selectedItemPosition)
         outState.putBoolean("ui_pause_score_silence", pauseScoreOnSilenceCheck.isChecked)
         outState.putBoolean("ui_gate", noiseGateCheck.isChecked)
+        outState.putInt("ui_gate_threshold_percent", noiseGateThresholdPercent)
         outState.putBoolean("ui_original_monitor", originalMonitorCheck.isChecked)
         outState.putInt("ui_preset_slot", currentPresetSlot ?: -1)
         outState.putString("ui_loaded_score", loadedPresetScore)
@@ -149,6 +159,8 @@ class MainActivity : Activity() {
             PitchRange(audioSettings.getFloat("min_pitch_ratio", 0.5f).toDouble(),
                 audioSettings.getFloat("max_pitch_ratio_value", oldUpper.toFloat()).toDouble())
         } catch (_: IllegalArgumentException) { PitchRange.DEFAULT }
+        noiseGateThresholdPercent = audioSettings.getInt(GATE_THRESHOLD_PERCENT, 100)
+            .coerceIn(50, 300)
         outputBoostDb = audioSettings.getInt("output_boost_db", 0)
             .coerceIn(0, OutputBoostProcessor.MAX_BOOST_DB)
         engine.setOutputBoostDb(outputBoostDb)
@@ -158,11 +170,16 @@ class MainActivity : Activity() {
         voiceEngineSpinner.setSelection(index.takeIf { it >= 0 } ?: VoiceEngine.IMPROVED.ordinal)
         if (savedInstanceState == null) restoreLastPreset() else {
             scoreInput.setText(savedInstanceState.getString("ui_score_text", "D3A3F# GB3G3G"))
-            pcHostInput.setText(savedInstanceState.getString("ui_pc_host", "127.0.0.1"))
+            pcHostInput.setText(savedInstanceState.getString("ui_pc_host",
+                audioSettings.getString(SAVED_PC_HOST, DEFAULT_PC_HOST) ?: DEFAULT_PC_HOST))
             updateBpm(savedInstanceState.getInt("ui_bpm", 200))
             voiceEngineSpinner.setSelection(savedInstanceState.getInt("ui_engine", VoiceEngine.IMPROVED.ordinal))
             pauseScoreOnSilenceCheck.isChecked = savedInstanceState.getBoolean("ui_pause_score_silence", true)
             noiseGateCheck.isChecked = savedInstanceState.getBoolean("ui_gate", true)
+            noiseGateThresholdPercent = savedInstanceState.getInt(
+                "ui_gate_threshold_percent", noiseGateThresholdPercent).coerceIn(50, 300)
+            noiseGateThresholdSlider.progress = (noiseGateThresholdPercent - 50) / 5
+            updateNoiseGateThresholdLabel()
             originalMonitorCheck.isChecked = savedInstanceState.getBoolean("ui_original_monitor", false)
             currentPresetSlot = savedInstanceState.getInt("ui_preset_slot", -1).takeIf { it >= 0 }
             loadedPresetScore = savedInstanceState.getString("ui_loaded_score")
@@ -327,6 +344,27 @@ class MainActivity : Activity() {
             isChecked = true
         }
         add(root, noiseGateCheck, 8)
+        noiseGateThresholdLabel = label("", 14f, true)
+        updateNoiseGateThresholdLabel()
+        add(root, noiseGateThresholdLabel, 6)
+        noiseGateThresholdSlider = SeekBar(this).apply {
+            // 50%..300%, increments of 5%. 100% exactly matches existing defaults.
+            max = 50
+            progress = (noiseGateThresholdPercent - 50) / 5
+            contentDescription = getString(R.string.gate_threshold_title)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    noiseGateThresholdPercent = 50 + 5 * progress
+                    updateNoiseGateThresholdLabel()
+                    settings.edit().putInt(GATE_THRESHOLD_PERCENT, noiseGateThresholdPercent).apply()
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) { }
+                override fun onStopTrackingTouch(seekBar: SeekBar?) { }
+            })
+        }
+        add(root, noiseGateThresholdSlider, 1)
+        add(root, label(getString(R.string.gate_threshold_explanation), 12f, color = muted), 1)
         naturalVoiceCheck = LocalizedCheckBox(this).apply {
             text = "自然声優先（元の音程に近い声を再合成しない・試験）"
             textSize = 14f
@@ -432,13 +470,12 @@ class MainActivity : Activity() {
             setOnClickListener { toggleMicButton(OutputTarget.ANDROID, directMic = true) }
         }
         add(root, startRawAndroid, 5)
-        add(root, label("外部出力が確認できない場合はハウリング注意を表示します。接続済みでも実際の出力先が内蔵スピーカーなら警告します。", 12f, color = muted), 3)
 
         add(root, label("PC用マイク（USB / Wi-Fi）", 17f, true), 25)
         add(root, label("USBでは 127.0.0.1。Wi-FiではPCのIPv4アドレスを指定。先にPC側の受信を開始。", 12f, color = muted), 6)
         pcHostInput = EditText(this).apply {
             setSingleLine(true)
-            setText("127.0.0.1")
+            setText(settings.getString(SAVED_PC_HOST, DEFAULT_PC_HOST) ?: DEFAULT_PC_HOST)
             textSize = 18f
             hint = UiLanguage.text(this@MainActivity, "PCの接続先 (例: 192.168.1.10)")
         }
@@ -823,6 +860,13 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun updateNoiseGateThresholdLabel() {
+        if (::noiseGateThresholdLabel.isInitialized) {
+            noiseGateThresholdLabel.text = getString(R.string.gate_threshold_value,
+                noiseGateThresholdPercent)
+        }
+    }
+
     private fun begin(voiceMode: Boolean, target: OutputTarget, directMic: Boolean = false) {
         if (active) return
         // 生マイクは楽譜入力やBPMに依存しない。楽譜が編集中でも利用可能。
@@ -834,13 +878,23 @@ class MainActivity : Activity() {
         val bpm = currentBpm
         val voiceEngine = VoiceEngine.entries[voiceEngineSpinner.selectedItemPosition.coerceIn(0, VoiceEngine.entries.lastIndex)]
         val gate = noiseGateCheck.isChecked
+        val pcHost = pcHostInput.text.toString().trim()
         try {
-            engine.start(score, bpm, voiceMode, target, pcHostInput.text.toString().trim(),
-                voiceEngine = voiceEngine, noiseGateEnabled = gate, restMode = restMode,
+            engine.start(score, bpm, voiceMode, target, pcHost,
+                voiceEngine = voiceEngine, noiseGateEnabled = gate,
+                noiseGateThresholdPercent = noiseGateThresholdPercent, restMode = restMode,
                 pauseScoreOnSilence = pauseScoreOnSilenceCheck.isChecked,
                 maxPitchRatio = pitchRange.maximum, minPitchRatio = pitchRange.minimum,
                 nearUnityEnabled = naturalVoiceCheck.isChecked,
                 originalMonitor = originalMonitorCheck.isChecked, directMic = directMic)
+            // Only PC start actions can persist the destination; edits alone and
+            // Android playback must never overwrite the last applied address.
+            if (target == OutputTarget.PC) {
+                val prefs = getSharedPreferences(AUDIO_PREFS, MODE_PRIVATE)
+                if (pcHost != prefs.getString(SAVED_PC_HOST, DEFAULT_PC_HOST)) {
+                    prefs.edit().putString(SAVED_PC_HOST, pcHost).apply()
+                }
+            }
             if (voiceMode && !directMic) getSharedPreferences("utamaru_audio_settings", MODE_PRIVATE)
                 .edit().putString("voice_engine", voiceEngine.name).apply()
             playingAndroidTest = !voiceMode && target == OutputTarget.ANDROID
@@ -850,7 +904,7 @@ class MainActivity : Activity() {
             stoppingAudio = false
             if (target == OutputTarget.PC) speakerWarningShown = false
             lastAudioError = null
-            showMonitor(if (directMic) "生マイクを起動中…（音程変換・ノイズゲートなし）" else
+            showMonitor(if (directMic) UiLanguage.text(this, "生マイクを起動中…（音程変換なし）") else
                 UiLanguage.text(this, "起動中…  |  ${score.size}音  |  $bpm BPM  |  音質: ${UiLanguage.text(this, voiceEngine.caption)}") +
                 if (voiceMode) UiLanguage.text(this, "  |  範囲${pitchRange.minimum}〜${pitchRange.maximum}倍") else "")
             setRunning(true)
@@ -926,6 +980,7 @@ class MainActivity : Activity() {
         languageSpinner.isEnabled = !value
         pauseScoreOnSilenceCheck.isEnabled = !value
         noiseGateCheck.isEnabled = !value
+        noiseGateThresholdSlider.isEnabled = !value
         naturalVoiceCheck.isEnabled = !value &&
             voiceEngineSpinner.selectedItemPosition != VoiceEngine.RUBBER_BAND.ordinal
         originalMonitorCheck.isEnabled = !value &&

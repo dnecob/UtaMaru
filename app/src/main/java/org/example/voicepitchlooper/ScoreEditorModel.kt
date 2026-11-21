@@ -22,11 +22,6 @@ class ScoreEditorModel(source: List<ScoreNote>) {
             val alteration = when (m.groupValues[2]) { "#" -> 1; "b" -> -1; else -> 0 }
             return Triple(diatonic, alteration, m.groupValues[3].toInt())
         }
-        fun semitoneOf(label: String): Int {
-            val parts = pitchParts(label) ?: error("音名を読み取れません: $label")
-            val natural = intArrayOf(0, 2, 4, 5, 7, 9, 11)[parts.first]
-            return Math.floorMod(natural + parts.second, 12)
-        }
     }
 
     val size: Int get() = items.size
@@ -38,12 +33,6 @@ class ScoreEditorModel(source: List<ScoreNote>) {
         require(step in items.indices && semitoneInOctave in 0..11 && octave in 1..6)
         val names = arrayOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
         items[step] = ScoreParser.parse(names[semitoneInOctave] + octave).single()
-    }
-
-    fun togglePitch(step: Int, semitone: Int, octave: Int) {
-        val previous = items[step]
-        val newLabel = arrayOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")[semitone] + octave
-        if (previous.label == newLabel) setRest(step) else setPitch(step, semitone, octave)
     }
 
     fun setRest(step: Int) {
@@ -119,16 +108,6 @@ class ScoreEditorModel(source: List<ScoreNote>) {
         return changes.size
     }
 
-    /** Remove only wholly empty trailing bars. Never change the first two bars. */
-    fun trimEmptyTrailingMeasures(): Int {
-        var removed = 0
-        while (items.size >= 12 && items.takeLast(4).all { it.frequency == null }) {
-            repeat(4) { items.removeAt(items.lastIndex) }
-            removed++
-        }
-        return removed
-    }
-
     /**
      * Insert one silent beat at the selected position, shifting all later beats right.
      * Keep the 4/4 measure count intact: use one trailing rest when possible,
@@ -161,19 +140,6 @@ class ScoreEditorModel(source: List<ScoreNote>) {
         require(selectedBeat in items.indices)
         items.removeAt(selectedBeat)
         items.add(ScoreNote("休符", null))
-    }
-
-    fun appendRest() = appendRests(1)
-
-    fun insertRest(index: Int) {
-        check(items.size < ScoreParser.MAX_BEATS) { "音符は最大4096拍までです" }
-        require(index in 0..items.size)
-        items.add(index, ScoreNote("休符", null))
-    }
-
-    fun delete(step: Int) {
-        check(items.size > 1) { "楽譜は最低1拍必要です" }
-        items.removeAt(step)
     }
 
     fun toScoreText(): String {

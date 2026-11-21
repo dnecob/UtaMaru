@@ -34,7 +34,6 @@
     <string name="ui_031">手機播放（喇叭／耳機）</string>
     <string name="ui_032">將麥克風音高轉換後播放</string>
     <string name="ui_033">直接播放麥克風原聲</string>
-    <string name="ui_034">未偵測到外接輸出，或音訊實際輸出至內建喇叭時，會顯示回授警告。</string>
     <string name="ui_035">電腦麥克風（USB／Wi-Fi）</string>
     <string name="ui_036">USB使用127.0.0.1；Wi-Fi請輸入電腦的IPv4位址。請先啟動電腦端接收程式。</string>
     <string name="ui_037">電腦位址（例如：192.168.1.10）</string>
@@ -162,7 +161,7 @@
     <string name="ui_159">雜訊抑制：</string>
     <string name="ui_160">人聲比較：</string>
     <string name="ui_161">執行中：原聲麥克風（未變調）</string>
-    <string name="ui_162">正在啟動原聲麥克風（無變調及雜訊閘）…</string>
+    <string name="ui_162">正在啟動原聲麥克風（不變調）…</string>
     <string name="ui_163">啟動中…</string>
     <string name="ui_164">引擎：</string>
     <string name="ui_165">無聲</string>
@@ -269,6 +268,9 @@
     <string name="ui_225">顯示前一小節</string>
     <string name="ui_226">顯示後一小節</string>
     <string name="ui_227">↰ 暫存</string>
-    <string name="ui_receiver_not_started">請先啟動接收程式（WindowsReceiver）。</string>
+    <string name="ui_receiver_not_started">請啟動接收程式（WindowsReceiver），並確認與電腦的連線（USB 或 Wi-Fi）。</string>
     <string name="ui_228">跳至下一個音符</string>
+    <string name="gate_threshold_title">雜訊閘門門檻</string>
+    <string name="gate_threshold_value">雜訊閘門門檻：%1$d%%（100%%＝原設定）</string>
+    <string name="gate_threshold_explanation">降低門檻較容易保留輕聲子音，但也可能讓雜訊通過。請於停止時調整。</string>
 </resources>
