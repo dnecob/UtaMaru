@@ -1,4 +1,4 @@
-# 唄まる -UtaMaru- v0.8.10.0 2026.11/21
+# 唄まる -UtaMaru- v0.8.11.0 2026.11/26
 
 ### Supported Languages 🇯🇵 🇹🇼 🇭🇰 🇬🇧 🇺🇲 🇦🇺
 The app itself supports Japanese, Traditional Chinese, and English.<br>
@@ -25,8 +25,8 @@ Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセス�
 
 ## ダウンロード Download
 
-📲[UtaMaru_v0.8.10.0.apk](https://github.com/dnecob/UtaMaru/releases/download/v8.10.0/UtaMaru_v0.8.10.0.apk)<br>
-💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.9.2/WindowsReceiver.zip)
+📲[UtaMaru_v0.8.11.0.apk](https://github.com/dnecob/UtaMaru/releases/download/v0.8.11.0/UtaMaru_v0.8.11.0.apk)<br>
+💻️[WindowsReceiver.zip](https://github.com/dnecob/UtaMaru/releases/download/v0.8.11.0/WindowsReceiver.zip)
 
 WindowsReceiverはスマホをマイクとしてWindows PCに接続する場合のみ必要。<br>
 WindowsReceiver is only required if you want to use your smartphone as a microphone for your Windows PC.
