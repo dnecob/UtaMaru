@@ -70,13 +70,16 @@ class MainActivity : Activity() {
     private lateinit var noiseGateThresholdLabel: TextView
     private lateinit var noiseGateThresholdSlider: SeekBar
     private var noiseGateThresholdPercent: Int = 100
+    private lateinit var scoreHighPassLabel: TextView
+    private lateinit var scoreHighPassSlider: SeekBar
+    private var scoreHighPassPercent: Int = 50
     private companion object {
         const val AUDIO_PREFS = "utamaru_audio_settings"
         const val SAVED_PC_HOST = "pc_host"
         const val GATE_THRESHOLD_PERCENT = "noise_gate_threshold_percent"
+        const val SCORE_HIGH_PASS_PERCENT = "score_high_pass_percent"
         const val DEFAULT_PC_HOST = "127.0.0.1"
     }
-    private lateinit var naturalVoiceCheck: CheckBox
     private lateinit var originalMonitorCheck: CheckBox
     private lateinit var pitchRangeSlider: PitchRangeSlider
     private lateinit var pitchRangeLabel: TextView
@@ -108,6 +111,7 @@ class MainActivity : Activity() {
         outState.putBoolean("ui_pause_score_silence", pauseScoreOnSilenceCheck.isChecked)
         outState.putBoolean("ui_gate", noiseGateCheck.isChecked)
         outState.putInt("ui_gate_threshold_percent", noiseGateThresholdPercent)
+        outState.putInt("ui_score_high_pass_percent", scoreHighPassPercent)
         outState.putBoolean("ui_original_monitor", originalMonitorCheck.isChecked)
         outState.putInt("ui_preset_slot", currentPresetSlot ?: -1)
         outState.putString("ui_loaded_score", loadedPresetScore)
@@ -161,25 +165,42 @@ class MainActivity : Activity() {
         } catch (_: IllegalArgumentException) { PitchRange.DEFAULT }
         noiseGateThresholdPercent = audioSettings.getInt(GATE_THRESHOLD_PERCENT, 100)
             .coerceIn(50, 300)
+        scoreHighPassPercent = audioSettings.getInt(SCORE_HIGH_PASS_PERCENT, 50)
+            .coerceIn(0, 90) / 5 * 5
+        engine.setScoreHighPassPercent(scoreHighPassPercent)
         outputBoostDb = audioSettings.getInt("output_boost_db", 0)
             .coerceIn(0, OutputBoostProcessor.MAX_BOOST_DB)
         engine.setOutputBoostDb(outputBoostDb)
         buildUi()
         val savedEngine = audioSettings.getString("voice_engine", VoiceEngine.IMPROVED.name)
-        val index = VoiceEngine.entries.indexOfFirst { it.name == savedEngine }
+        // Migrate saved selections from the three-mode Signalsmith experiment.
+        val selectedEngineName = when (savedEngine) {
+            "SIGNALSMITH_FORMANT", "SIGNALSMITH_FORMANT_HARMONICS" -> VoiceEngine.SIGNALSMITH.name
+            else -> savedEngine
+        }
+        val index = VoiceEngine.entries.indexOfFirst { it.name == selectedEngineName }
         voiceEngineSpinner.setSelection(index.takeIf { it >= 0 } ?: VoiceEngine.IMPROVED.ordinal)
         if (savedInstanceState == null) restoreLastPreset() else {
             scoreInput.setText(savedInstanceState.getString("ui_score_text", "D3A3F# GB3G3G"))
             pcHostInput.setText(savedInstanceState.getString("ui_pc_host",
                 audioSettings.getString(SAVED_PC_HOST, DEFAULT_PC_HOST) ?: DEFAULT_PC_HOST))
             updateBpm(savedInstanceState.getInt("ui_bpm", 200))
-            voiceEngineSpinner.setSelection(savedInstanceState.getInt("ui_engine", VoiceEngine.IMPROVED.ordinal))
+            // Old ordinal 4/5 referred to extra Signalsmith variants.
+            voiceEngineSpinner.setSelection(
+                savedInstanceState.getInt("ui_engine", VoiceEngine.IMPROVED.ordinal)
+                    .coerceIn(0, VoiceEngine.entries.lastIndex)
+            )
             pauseScoreOnSilenceCheck.isChecked = savedInstanceState.getBoolean("ui_pause_score_silence", true)
             noiseGateCheck.isChecked = savedInstanceState.getBoolean("ui_gate", true)
             noiseGateThresholdPercent = savedInstanceState.getInt(
                 "ui_gate_threshold_percent", noiseGateThresholdPercent).coerceIn(50, 300)
             noiseGateThresholdSlider.progress = (noiseGateThresholdPercent - 50) / 5
             updateNoiseGateThresholdLabel()
+            scoreHighPassPercent = (savedInstanceState.getInt(
+                "ui_score_high_pass_percent", scoreHighPassPercent).coerceIn(0, 90) / 5) * 5
+            scoreHighPassSlider.progress = scoreHighPassPercent / 5
+            engine.setScoreHighPassPercent(scoreHighPassPercent)
+            updateScoreHighPassLabel()
             originalMonitorCheck.isChecked = savedInstanceState.getBoolean("ui_original_monitor", false)
             currentPresetSlot = savedInstanceState.getInt("ui_preset_slot", -1).takeIf { it >= 0 }
             loadedPresetScore = savedInstanceState.getString("ui_loaded_score")
@@ -308,8 +329,9 @@ class MainActivity : Activity() {
             setPadding(dp(12), 0, dp(32), 0)
             contentDescription = UiLanguage.text(this@MainActivity, "音声変換エンジンを選択")
             val entries = VoiceEngine.entries.map { engine ->
-                if (engine == VoiceEngine.RUBBER_BAND && !RubberBandNative.isAvailable)
-                    UiLanguage.text(this@MainActivity, "Rubber Band（未導入・セットアップが必要）")
+                if (engine.usesPitchEngine24() &&
+                    !PitchEngine24Native.isAvailable)
+                    UiLanguage.text(this@MainActivity, engine.caption + "（未導入・セットアップが必要）")
                 else UiLanguage.text(this@MainActivity, engine.caption)
             }
             adapter = ArrayAdapter(this@MainActivity,
@@ -365,17 +387,28 @@ class MainActivity : Activity() {
         }
         add(root, noiseGateThresholdSlider, 1)
         add(root, label(getString(R.string.gate_threshold_explanation), 12f, color = muted), 1)
-        naturalVoiceCheck = LocalizedCheckBox(this).apply {
-            text = "自然声優先（元の音程に近い声を再合成しない・試験）"
-            textSize = 14f
-            isChecked = settings.getBoolean("near_unity_bypass", false)
-            setOnCheckedChangeListener { _, checked ->
-                settings.edit().putBoolean("near_unity_bypass", checked).apply()
-            }
+        add(root, label(getString(R.string.score_hpf_title), 15f, true), 15)
+        scoreHighPassLabel = label("", 14f, true)
+        updateScoreHighPassLabel()
+        add(root, scoreHighPassLabel, 4)
+        scoreHighPassSlider = SeekBar(this).apply {
+            max = 18  // 0..90% at 5% increments
+            progress = scoreHighPassPercent / 5
+            contentDescription = getString(R.string.score_hpf_content_desc)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    scoreHighPassPercent = progress * 5
+                    engine.setScoreHighPassPercent(scoreHighPassPercent)
+                    updateScoreHighPassLabel()
+                    settings.edit().putInt(SCORE_HIGH_PASS_PERCENT, scoreHighPassPercent).apply()
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) { }
+                override fun onStopTrackingTouch(seekBar: SeekBar?) { }
+            })
         }
-        add(root, naturalVoiceCheck, 5)
-        add(root, label("元の音程との差が15セント以内なら原音を優先し、25セント以上で変換音へ戻します。" +
-            "標準・PSOLA風のみ。", 12f, color = muted), 2)
+        add(root, scoreHighPassSlider, 1)
+        add(root, label(getString(R.string.score_hpf_desc), 12f, color = muted), 2)
         originalMonitorCheck = LocalizedCheckBox(this).apply {
             text = "原音モニター（変換を聴き比べる診断用）"
             textSize = 14f
@@ -384,18 +417,22 @@ class MainActivity : Activity() {
         voiceEngineSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?,
                                         position: Int, id: Long) {
-                val supported = position != VoiceEngine.RUBBER_BAND.ordinal
-                naturalVoiceCheck.isEnabled = !active && supported
+                val supported = !VoiceEngine.entries[position].usesPitchEngine24()
                 originalMonitorCheck.isEnabled = !active && supported
                 if (!supported) originalMonitorCheck.isChecked = false
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) { }
         }
 
-        add(root, label("ピッチ変換倍率の範囲", 15f, true), 16)
-        pitchRangeLabel = label("", 15f, true)
+        // Keep this section compact: title and current range have no extra font padding.
+        add(root, label("ピッチ変換倍率の範囲", 15f, true).apply {
+            includeFontPadding = false
+        }, 8)
+        pitchRangeLabel = label("", 14f, true).apply {
+            includeFontPadding = false
+        }
         updatePitchRangeLabel()
-        add(root, pitchRangeLabel, 5)
+        add(root, pitchRangeLabel, 2)
         pitchRangeSlider = PitchRangeSlider(this).apply {
             setRange(pitchRange.minimum, pitchRange.maximum)
             onRangeChanged = { low, high ->
@@ -406,11 +443,10 @@ class MainActivity : Activity() {
                     .putFloat("max_pitch_ratio_value", high.toFloat()).apply()
             }
         }
-        add(root, pitchRangeSlider, 2)
-        add(root, label("青＝低音側の下限、緑＝高音側の上限。左右のつまみを動かして指定。" +
-            "従来の設定は0.50〜3.50倍。範囲を広げるほど声質が崩れやすくなります。", 12f, color = muted), 2)
+        add(root, pitchRangeSlider, 0)
+        add(root, label(getString(R.string.pitch_range_slider_desc), 12f, color = muted), 2)
 
-        add(root, label("休符の音声出力", 15f, true), 16)
+        add(root, label("休符の音声出力", 15f, true), 10)
         restModeButton = LocalizedButton(this).apply {
             isAllCaps = false
             text = "休符：${restMode.caption} ▼"
@@ -628,6 +664,14 @@ class MainActivity : Activity() {
             // Fit one footer line even on narrower Android 12 devices.
             setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1, TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM)
         }, 18)
+    }
+
+    private fun updateScoreHighPassLabel() {
+        if (::scoreHighPassLabel.isInitialized) {
+            scoreHighPassLabel.text = if (scoreHighPassPercent == 0)
+                getString(R.string.score_hpf_off)
+            else getString(R.string.score_hpf_value, scoreHighPassPercent)
+        }
     }
 
     private fun updateOutputBoostLabel() {
@@ -885,7 +929,7 @@ class MainActivity : Activity() {
                 noiseGateThresholdPercent = noiseGateThresholdPercent, restMode = restMode,
                 pauseScoreOnSilence = pauseScoreOnSilenceCheck.isChecked,
                 maxPitchRatio = pitchRange.maximum, minPitchRatio = pitchRange.minimum,
-                nearUnityEnabled = naturalVoiceCheck.isChecked,
+                nearUnityEnabled = false, // Natural-voice priority is intentionally disabled.
                 originalMonitor = originalMonitorCheck.isChecked, directMic = directMic)
             // Only PC start actions can persist the destination; edits alone and
             // Android playback must never overwrite the last applied address.
@@ -925,7 +969,6 @@ class MainActivity : Activity() {
                 "入力声の音程: ${if (s.mode == "テスト音") "—" else hz(s.detectedHz)}\n" +
                 "変換倍率: $multiplier（${pitchRange.minimum}〜${pitchRange.maximum}倍）\n" +
                 "変換方式: ${s.qualityMode}  |  ノイズ抑制: ${s.noiseGate}\n" +
-                "声質比較: ${s.naturalVoice}\n" +
                 "出力先: ${s.route}")
         // Reset warning eligibility when an external output becomes the actual route.
         // A subsequent switch back to the internal speaker must warn again.
@@ -981,10 +1024,8 @@ class MainActivity : Activity() {
         pauseScoreOnSilenceCheck.isEnabled = !value
         noiseGateCheck.isEnabled = !value
         noiseGateThresholdSlider.isEnabled = !value
-        naturalVoiceCheck.isEnabled = !value &&
-            voiceEngineSpinner.selectedItemPosition != VoiceEngine.RUBBER_BAND.ordinal
         originalMonitorCheck.isEnabled = !value &&
-            voiceEngineSpinner.selectedItemPosition != VoiceEngine.RUBBER_BAND.ordinal
+            !VoiceEngine.entries[voiceEngineSpinner.selectedItemPosition.coerceIn(0, VoiceEngine.entries.lastIndex)].usesPitchEngine24()
         pitchRangeSlider.isEnabled = !value
         restModeButton.isEnabled = !value
         if (value) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

@@ -11,8 +11,8 @@
     <string name="ui_008">Save current score and BPM as a preset</string>
     <string name="ui_009">Pitch conversion engine</string>
     <string name="ui_010">Select pitch conversion engine</string>
-    <string name="ui_011">Standard (low latency; plosive handling)</string>
-    <string name="ui_012">Improved quality (PSOLA-like)</string>
+    <string name="ui_011">Standard (Low latency · General-purpose)</string>
+    <string name="ui_012">Improved Sound (Recommended · PSOLA-like)</string>
     <string name="ui_013">Rubber Band (formant preservation)</string>
     <string name="ui_014">Rubber Band (not installed; setup required)</string>
     <string name="ui_015">Switch engines only while stopped.</string>
@@ -273,4 +273,23 @@
     <string name="gate_threshold_title">Noise gate threshold</string>
     <string name="gate_threshold_value">Noise gate threshold: %1$d%% (100%% = original)</string>
     <string name="gate_threshold_explanation">Lower values pass quieter consonants but may also pass noise. Adjust when stopped.</string>
+
+
+    <string name="ui_engine_stretcher24">Stretcher 24kHz (Rubber Band)</string>
+    <string name="ui_engine_signalsmith24">Signalsmith 24kHz</string>
+    <string name="ui_engine_native_bypass">Not available for native 24kHz engines</string>
+    <string name="score_hpf_title">Score-relative high-pass (all engines)</string>
+    <string name="score_hpf_desc">0% = OFF. Attenuates low-frequency noise relative to the score pitch, but a higher percentage can also thin out the voice. Adjustable during playback.</string>
+    <string name="score_hpf_content_desc">Adjust high-pass percentage</string>
+    <string name="score_hpf_off">Current: OFF (no low-cut)</string>
+    <string name="score_hpf_value">Current: attenuate below %1$d%% of score pitch</string>
+    <string name="pitch_lower_limit_value">Lower pitch limit: %1$.2fx</string>
+    <string name="pitch_upper_limit_value">Upper pitch limit: %1$.2fx</string>
+    <string name="pitch_lower_limit_desc">Adjust the lower pitch ratio limit</string>
+    <string name="pitch_upper_limit_desc">Adjust the upper pitch ratio limit</string>
+
+    <string name="pitch_range_content_desc">Pitch-ratio range. Left thumb sets the lower limit, right thumb sets the upper limit</string>
+    <string name="pitch_lower_side">Low</string>
+    <string name="pitch_upper_side">High</string>
+    <string name="pitch_range_slider_desc">Blue = lower pitch limit; green = upper pitch limit. Wider ranges can reduce voice quality.</string>
 </resources>

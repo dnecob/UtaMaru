@@ -13,6 +13,7 @@ import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.Socket
 import kotlin.math.max
+import java.util.ArrayDeque
 
 enum class OutputTarget { ANDROID, PC }
 
@@ -26,7 +27,12 @@ class AudioEngine(
         const val RATE = 48000
         const val PC_PORT = 50005
         const val RECEIVER_NOT_STARTED = "受信プログラム(WindowsReceiver)を起動し、PCとの接続（USBまたはWi-Fi）も確認してください。"
-        private const val FRAME = 960  // exactly 20 ms of 48kHz 16-bit mono PCM
+        private const val FRAME = 960  // exactly 20 ms of 48kHz mono PCM
+        private const val ENGINE_FRAME = 480 // 20 ms at 24kHz
+        // Output noise-gate envelope, shared by Standard, PSOLA, Rubber Band and raw mic.
+        // Timings are sample-accurate; no need to round the release constant to FRAME (20 ms).
+        private const val VOICE_GATE_HOLD_MS = 100
+        private const val VOICE_GATE_RELEASE_TAU_MS = 30.0
         private const val SCORE_STARTUP_GRACE_MS = 300L
     }
 
@@ -45,6 +51,13 @@ class AudioEngine(
 
     @Volatile private var running = false
     @Volatile private var outputBoostDb = 0
+    @Volatile private var scoreHighPassPercent = 50
+
+    /** Common score-relative high-pass; 0% is OFF, 5..90% in 5% steps. */
+    fun setScoreHighPassPercent(value: Int) {
+        require(value in 0..90 && value % 5 == 0)
+        scoreHighPassPercent = value
+    }
 
     /** May be changed by the main-thread slider while the audio worker runs. */
     fun setOutputBoostDb(value: Int) {
@@ -69,9 +82,10 @@ class AudioEngine(
         require(!directMic || voiceMode) { "生マイクは音声入力モードのみ有効です" }
         PitchRange(minPitchRatio, maxPitchRatio) // validate before starting worker
         require(noiseGateThresholdPercent in 50..300)
-        if (voiceMode && !directMic && voiceEngine == VoiceEngine.RUBBER_BAND) {
-            check(RubberBandNative.isAvailable) {
-                "Rubber Bandが未導入です。SETUP_RUBBERBAND.bat実行後にAPKを再ビルドしてください。"
+        if (voiceMode && !directMic &&
+            voiceEngine.usesPitchEngine24()) {
+            check(PitchEngine24Native.isAvailable) {
+                "24kHzエンジンが未導入です。SETUP_PITCH24.bat実行後にAPKを再ビルドしてください。"
             }
         }
         if (outputTarget == OutputTarget.PC) require(pcHost.isNotBlank()) { "PCの接続先を入力してください" }
@@ -116,7 +130,7 @@ class AudioEngine(
         var track: AudioTrack? = null
         var record: AudioRecord? = null
         var pcSocket: Socket? = null
-        var rubberShifter: RubberBandNative? = null
+        var native24: PitchEngine24Native? = null
         var micReader: Thread? = null
         var inputLookahead: VoiceInputLookahead? = null
         try {
@@ -162,34 +176,44 @@ class AudioEngine(
             }
             // 生マイクでは音程検出・変換・楽譜処理を起動しない。
             // ノイズゲートだけは共通のON/OFF設定に従って使用する。
+            val rateBridge = if (voiceMode && !directMic) VoiceRateBridge24() else null
             val detector = if (voiceMode && !directMic) PitchDetector() else null
             val improvedShifter = if (voiceMode && !directMic && voiceEngine == VoiceEngine.IMPROVED)
                 PitchShifter(maxPitchRatio, minPitchRatio) else null
             val previousShifter = if (voiceMode && !directMic && voiceEngine == VoiceEngine.STANDARD)
                 LegacyPitchShifter(maxPitchRatio, minPitchRatio) else null
-            if (voiceMode && !directMic && voiceEngine == VoiceEngine.RUBBER_BAND) {
-                rubberShifter = RubberBandNative(RATE)
+            if (voiceMode && !directMic &&
+                voiceEngine.usesPitchEngine24()) {
+                native24 = PitchEngine24Native(voiceEngine)
             }
-            // Raw microphone uses the same output noise gate, with energy-only
-            // voice activity detection (no pitch detection or pitch shifting).
+            // All four microphone modes use the same post-voice envelope.
+            // Keep each mode's established voice detection, PSOLA delay and
+            // breathy-tail behavior unchanged; only hold/release timings change.
             val gate = if (voiceMode && noiseGateEnabled) {
                 if (!directMic && voiceEngine == VoiceEngine.IMPROVED) {
-                    // PSOLA is delayed by 8192 samples (~171ms). Apply voice
-                    // activity at the corresponding output time and preserve
-                    // low-energy breathy endings.
-                    VoiceNoiseGate(holdMillis = 300, releaseMillis = 120.0,
+                    // PSOLA is delayed by 8192 samples (~171ms).
+                    VoiceNoiseGate(holdMillis = VOICE_GATE_HOLD_MS,
+                        releaseMillis = VOICE_GATE_RELEASE_TAU_MS,
                         outputDelaySamples = 8192, preserveBreathyTail = true,
                         thresholdPercent = noiseGateThresholdPercent)
                 } else if (directMic) {
-                    // Unlike pitch-converted voice, the raw microphone has no
-                    // pitch-based VAD. The standard 0.015 RMS threshold and
-                    // 150ms hold caused quiet syllables and small pauses to
-                    // disappear. Keep a gentler, raw-only gate; don't alter
-                    // the verified Standard/Improved/Rubber Band paths.
-                    VoiceNoiseGate(holdMillis = 450, releaseMillis = 180.0,
+                    // Raw microphone keeps energy-only VAD, breathy-tail
+                    // continuation and its gentler noise detection thresholds.
+                    VoiceNoiseGate(holdMillis = VOICE_GATE_HOLD_MS,
+                        releaseMillis = VOICE_GATE_RELEASE_TAU_MS,
                         preserveBreathyTail = true, rawMicMode = true,
                         thresholdPercent = noiseGateThresholdPercent)
-                } else VoiceNoiseGate(thresholdPercent = noiseGateThresholdPercent)
+                } else if (!directMic && native24 != null) {
+                    VoiceNoiseGate(holdMillis = VOICE_GATE_HOLD_MS,
+                        releaseMillis = VOICE_GATE_RELEASE_TAU_MS,
+                        outputDelaySamples = PitchEngine24Native.OUTPUT_DELAY_48K,
+                        thresholdPercent = noiseGateThresholdPercent)
+                } else {
+                    // Standard path is unchanged.
+                    VoiceNoiseGate(holdMillis = VOICE_GATE_HOLD_MS,
+                        releaseMillis = VOICE_GATE_RELEASE_TAU_MS,
+                        thresholdPercent = noiseGateThresholdPercent)
+                }
             } else null
             // Voice activity is reused from the normal noise gate when enabled.
             // Otherwise keep a lightweight, independent input-level detector.
@@ -204,10 +228,12 @@ class AudioEngine(
             val scoreStartupGraceSamples = RATE * SCORE_STARTUP_GRACE_MS / 1000L
             // Wet/dry latency is known to be 8192 samples in the two Kotlin
             // shifters. Rubber Band has its own variable internal delay.
-            val naturalBypass = if (voiceMode && !directMic && voiceEngine != VoiceEngine.RUBBER_BAND)
+            val naturalBypass = if (voiceMode && !directMic && native24 == null)
                 NaturalVoiceBypass(dryLevel = if (voiceEngine == VoiceEngine.STANDARD) 0.82 else 0.90)
                 else null
-            val restMixer = if (voiceMode && !directMic) RestOutputMixer(matchImprovedLevel = voiceEngine != VoiceEngine.STANDARD) else null
+            val restMixer = if (voiceMode && !directMic) RestOutputMixer(
+                delaySamples = if (native24 != null) PitchEngine24Native.OUTPUT_DELAY_48K else 8192,
+                matchImprovedLevel = voiceEngine != VoiceEngine.STANDARD) else null
             val heldNotes = if (voiceMode && !directMic && restMode == RestPlaybackMode.HOLD_LAST)
                 RestPlaybackPlan.holdLast(notes) else notes
             // Rest-skipping applies only to live pitch conversion, not score
@@ -216,12 +242,23 @@ class AudioEngine(
                 RestPlaybackPlan.stepsUntilNextNote(notes) else null
             // All microphone paths (raw/shifted, phone/PC) use the same
             // continuous full-frame capture and short pre-onset lookahead.
-            inputLookahead = if (voiceMode) VoiceInputLookahead(FRAME, 2) else null
+            inputLookahead = if (voiceMode) VoiceInputLookahead(FRAME, 3) else null
             activeCapture = inputLookahead
             var captured = ShortArray(FRAME)
+            var captured24 = ShortArray(ENGINE_FRAME)
             val rawNote = ScoreNote("—", null)
             val networkFrame = ByteArray(FRAME * 2)
             val outputBooster = OutputBoostProcessor()
+            // Shared score-relative high-pass after rest mixing, before final gain.
+            // The filter runs at 48kHz for all 4 pitch-conversion engines.
+            // Direct mic, dry original monitoring, and score test tones bypass it.
+            val scoreHighPass = if (voiceMode && !directMic) ScoreHighPass() else null
+            // Score note changes lead engine output by its conversion latency.
+            // Each 20ms note entry follows the audio through the corresponding
+            // shifter: ~171ms (9 frames) Kotlin engines; 200ms (10) native.
+            // This preserves score-relative filtering during fast note changes.
+            val scoreNoteDelayFrames = if (native24 != null) 10 else 9
+            val delayedScoreNotes = ArrayDeque<Double>()
             val netOut = pcSocket?.getOutputStream()
             var lastPitch: Double? = null
             var lastPitchNs = 0L
@@ -290,7 +327,10 @@ class AudioEngine(
                     bufferedInputRms = inputFrame.rms
                     upcomingInputRms = inputFrame.futurePeakRms
                     count = FRAME
-                    if (!directMic) detector!!.push(captured, count)
+                    if (!directMic) {
+                        captured24 = rateBridge!!.downsample(captured)
+                        detector!!.push(captured24, ENGINE_FRAME)
+                    }
                 } else {
                     count = FRAME
                 }
@@ -359,19 +399,23 @@ class AudioEngine(
                     if (!directMic && trackedPitch != null && targetNote.frequency != null)
                         lastRatio = (targetNote.frequency / trackedPitch).coerceIn(minPitchRatio, maxPitchRatio)
                     ratio = if (!directMic && trackedPitch != null && targetNote.frequency != null) lastRatio else null
-                    output = if (directMic) captured else when (voiceEngine) {
-                        VoiceEngine.IMPROVED -> improvedShifter!!.process(captured, count, lastRatio,
+                    output = if (directMic) captured else {
+                        val shifted24 = when (voiceEngine) {
+                        VoiceEngine.IMPROVED -> improvedShifter!!.process(captured24, ENGINE_FRAME, lastRatio,
                             mute = targetNote.frequency == null,
                             inputFundamentalHz = trackedPitch,
                             suppressRawFallback = !nearUnityEnabled && !originalMonitor)
-                        VoiceEngine.STANDARD -> previousShifter!!.process(captured, count, lastRatio,
+                        VoiceEngine.STANDARD -> previousShifter!!.process(captured24, ENGINE_FRAME, lastRatio,
                             // With the gate enabled, let clear speech onsets
                             // through even while YIN collects its first period.
                             // The old behaviour is unchanged when gate is OFF.
                             mute = targetNote.frequency == null ||
                                 (trackedPitch == null && !gateVoice),
                             inputFundamentalHz = trackedPitch)
-                        VoiceEngine.RUBBER_BAND -> rubberShifter!!.process(captured, count, lastRatio)
+                        VoiceEngine.RUBBER_BAND, VoiceEngine.SIGNALSMITH ->
+                            native24!!.process(captured24, lastRatio)
+                        }
+                        rateBridge!!.upsample(shifted24)
                     }
                 } else {
                     ratio = null
@@ -418,10 +462,34 @@ class AudioEngine(
                     restMixer!!.mix(output, captured, count, restSelection,
                         voiceDetected = voiceDetected)
                 }
-                // Same final gain for converted voice, raw microphone and test
-                // tones, regardless of Android speaker or Windows receiver.
-                // No processing at the default 0 dB setting.
-                outputBooster.process(output, count, outputBoostDb)
+                // Keep score-note delay history advancing even while HPF is OFF;
+                // the output note must still align if the slider is enabled later.
+                if (scoreHighPass != null) {
+                    delayedScoreNotes.addLast(targetNote.frequency ?: Double.NaN)
+                    val alignedHz = if (delayedScoreNotes.size > scoreNoteDelayFrames)
+                        delayedScoreNotes.removeFirst().takeIf { it.isFinite() && it > 0.0 } else null
+                    val hpPercent = scoreHighPassPercent
+                    // True bypass at stable 0%: do not even call process().
+                    // A pending 20ms transition from an active filter to 0%
+                    // must finish first, to avoid a discontinuity/click.
+                    if (hpPercent > 0 || scoreHighPass.needsFadeOut()) {
+                        scoreHighPass.process(output, count,
+                            if (originalMonitor || (note.frequency == null &&
+                                restMode != RestPlaybackMode.HOLD_LAST)) null else alignedHz,
+                            hpPercent)
+                    }
+                }
+                // The pitch-dependent auto gain and manual boost continue to
+                // share the existing ONE final peak limiter for phone and PC.
+                // Auto-compensate loudness lost on UPWARD pitch shifts only.
+                // Do not boost raw mic, test tone, original-voice monitor or
+                // an unshifted/raw-rest path. HOLD_LAST rests still have a note.
+                val automaticGainRatio = if (voiceMode && !directMic && !originalMonitor &&
+                    (note.frequency != null || restMode == RestPlaybackMode.HOLD_LAST)) ratio
+                    else null
+                // Both gains are combined and peak-limited once at the final
+                // common output point, for phone playback and PC transmission.
+                outputBooster.process(output, count, outputBoostDb, automaticGainRatio)
                 if (outputTarget == OutputTarget.ANDROID) {
                     var offset = 0
                     while (running && offset < count) {
@@ -472,7 +540,7 @@ class AudioEngine(
                         if (directMic) "無変換" else voiceEngine.caption,
                         if (gate == null) "OFF" else "ON",
                         if (directMic) "音声加工なし" else when {
-                            naturalBypass == null -> "Rubber Band対象外"
+                            naturalBypass == null -> "24kHzネイティブエンジン対象外"
                             originalMonitor -> "原音比較"
                             nearUnityEnabled -> "自然声優先"
                             else -> "従来処理"
@@ -492,7 +560,7 @@ class AudioEngine(
             val dropped = inputLookahead?.droppedFrameCount() ?: 0L
             if (dropped > 0L) android.util.Log.w("UtaMaruAudio",
                 "Microphone FIFO overflow: $dropped frame(s) dropped while output was stalled")
-            try { rubberShifter?.close() } catch (_: Exception) { }
+            try { native24?.close() } catch (_: Exception) { }
             record?.release()
             try { track?.pause(); track?.flush(); track?.stop() } catch (_: Exception) { }
             track?.release()

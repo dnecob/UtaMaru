@@ -7,13 +7,13 @@ import kotlin.math.sqrt
  * Bounded, thread-safe PCM FIFO between the continuously running microphone
  * capture thread and the audio-processing/output thread (phone or PC).
  *
- * Keep 2 future 20-ms frames for a 40-ms output-gate lookahead, preserving
+ * Keep 3 future 20-ms frames for a 60-ms output-gate lookahead, preserving
  * quiet consonants just ahead of clearly voiced frames. Audio samples remain
  * untouched. The existing noise-gate thresholds and coefficients are unchanged.
  */
 internal class VoiceInputLookahead(
     private val frameSamples: Int,
-    private val lookaheadFrames: Int = 2,
+    private val lookaheadFrames: Int = 3,
     private val maxFrames: Int = 32
 ) {
     init {

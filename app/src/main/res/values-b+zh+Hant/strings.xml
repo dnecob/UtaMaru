@@ -11,8 +11,8 @@
     <string name="ui_008">將目前樂譜與BPM儲存為預設</string>
     <string name="ui_009">音高轉換引擎</string>
     <string name="ui_010">選擇音高轉換引擎</string>
-    <string name="ui_011">標準（低延遲、已處理爆破音）</string>
-    <string name="ui_012">音質改善（類PSOLA）</string>
+    <string name="ui_011">標準（低延遲・一般用途）</string>
+    <string name="ui_012">音質改善（推薦・類PSOLA）</string>
     <string name="ui_013">Rubber Band（保留共振峰）</string>
     <string name="ui_014">Rubber Band（尚未安裝，需先設定）</string>
     <string name="ui_015">僅可於停止時切換。</string>
@@ -273,4 +273,23 @@
     <string name="gate_threshold_title">雜訊閘門門檻</string>
     <string name="gate_threshold_value">雜訊閘門門檻：%1$d%%（100%%＝原設定）</string>
     <string name="gate_threshold_explanation">降低門檻較容易保留輕聲子音，但也可能讓雜訊通過。請於停止時調整。</string>
+
+
+    <string name="ui_engine_stretcher24">Stretcher 24kHz（Rubber Band）</string>
+    <string name="ui_engine_signalsmith24">Signalsmith 24kHz</string>
+    <string name="ui_engine_native_bypass">24kHz 原生引擎不適用</string>
+    <string name="score_hpf_title">樂譜音高連動高通濾波（所有引擎）</string>
+    <string name="score_hpf_desc">0%＝關閉。依樂譜音高衰減低頻噪音，但比例過高也會使人聲失去厚度。播放時可調整。</string>
+    <string name="score_hpf_content_desc">調整高通濾波比例</string>
+    <string name="score_hpf_off">目前：關閉（不削減低頻）</string>
+    <string name="score_hpf_value">目前：衰減低於樂譜音高%1$d%%的頻率</string>
+    <string name="pitch_lower_limit_value">低音側下限：%1$.2f 倍</string>
+    <string name="pitch_upper_limit_value">高音側上限：%1$.2f 倍</string>
+    <string name="pitch_lower_limit_desc">調整低音側的變調倍率下限</string>
+    <string name="pitch_upper_limit_desc">調整高音側的變調倍率上限</string>
+
+    <string name="pitch_range_content_desc">變調倍率範圍。左側滑塊設定低音下限，右側滑塊設定高音上限</string>
+    <string name="pitch_lower_side">低音側</string>
+    <string name="pitch_upper_side">高音側</string>
+    <string name="pitch_range_slider_desc">藍色＝低音側下限，綠色＝高音側上限。範圍越大，音質越容易下降。</string>
 </resources>

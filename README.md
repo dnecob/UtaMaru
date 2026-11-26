@@ -110,25 +110,26 @@ SDKのパスは各自の `local.properties` に設定します（Git管理対象
 ・ `SETUP_RUBBERBAND.bat` はソースが存在しない場合の再取得用で、通常のクローン後に毎回実行する必要はありません。<br>
 Androidアプリのネイティブビルドには同梱ソースの `single/RubberBandSingle.cpp` を利用します。
 
-`BUILD_UTAMARU_APK.bat` は **デバッグ署名のAPK** を作成します。
-
 ## ソースコード・ライセンス
 
 Copyright (C) 2026 赫ねこ
 
 唄まる -UtaMaru- の独自ソースコードは **GNU General Public License version 2 or later（GPL-2.0-or-later）** で公開しています。<br>
-本アプリには **Rubber Band Library 4.0.0** が組み込まれており、GPL-2.0-or-laterの条件で再配布しています。
+本アプリには **Rubber Band Library 4.0.0** が組み込まれており、GPL-2.0-or-laterの条件で使用・再配布しています。<br>
+また、音声処理に **Signalsmith Stretch** と **Signalsmith Linear** を使用しています。これらはそれぞれ **MIT License** で公開されており、著作権表示と許諾文を保持する必要があります。MITライセンスが唄まる独自ソースのGPLを置き換えるわけではありません。
 
-- ライセンス全文：[LICENSE](LICENSE)<br>
-- Rubber Bandのライセンス：`third_party/rubberband-4.0.0/COPYING`<br>
-- 外部ライブラリの著作権・ライセンス情報：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)<br>
+- 唄まる本体のライセンス全文：[LICENSE](LICENSE)<br>
+- Rubber Bandのライセンス全文：`third_party/rubberband-4.0.0/COPYING`<br>
+- Signalsmith Stretchのライセンス原文：[公式 LICENSE.txt](https://github.com/Signalsmith-Audio/signalsmith-stretch/blob/main/LICENSE.txt)<br>
+- Signalsmith Linearのライセンス原文：[公式 LICENSE.txt](https://github.com/Signalsmith-Audio/linear/blob/main/LICENSE.txt)<br>
+- **両Signalsmithの著作権表示・MIT全文を含む**第三者ライセンス一覧：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)<br>
 
 本リポジトリにはRubber Bandのソースコード一式を含めています。<br>
-配布するAPKに対応するソースコードも提供します。
+Signalsmithのソースは、ビルド設定に応じて `third_party/signalsmith-stretch/` および `third_party/signalsmith-linear/` に取得されます。APKを公開するときは、**公開するAPKに対応するソースコード・ビルド設定・第三者ライセンス表示**を合わせて提供し、使用したSignalsmithのリビジョンを確認してください。
 
-WindowsReceiverのソースコードは WindowsReceiver/src/main.go に含まれています。<br>
+WindowsReceiverのソースコードは `WindowsReceiver/src/main.go` に含まれています。<br>
 WindowsReceiverはGPL-2.0-or-laterで公開しています。<br>
-ビルド手順およびライセンス情報は WindowsReceiver/SOURCE_AND_LICENSE.txt を参照してください。
+ビルド手順およびライセンス情報は `WindowsReceiver/SOURCE_AND_LICENSE.txt` を参照してください。
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 ### 楽譜画像 ▷ 唄まる用楽譜

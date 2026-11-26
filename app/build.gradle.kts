@@ -17,12 +17,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    // Native build is optional until SETUP_RUBBERBAND.bat downloads the official
-    // GPL source. This lets the two existing audio engines build without an NDK.
-    if (file("../third_party/rubberband-4.0.0/single/RubberBandSingle.cpp").exists()) {
-        externalNativeBuild {
-            cmake { path = file("src/main/cpp/CMakeLists.txt") }
-        }
+    // CMake downloads missing Signalsmith headers during initial Gradle Sync.
+    externalNativeBuild {
+        cmake { path = file("src/main/cpp/CMakeLists.txt") }
     }
     buildTypes {
         release {

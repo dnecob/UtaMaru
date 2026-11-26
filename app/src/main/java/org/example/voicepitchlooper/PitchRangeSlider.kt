@@ -2,13 +2,14 @@ package org.example.voicepitchlooper
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import kotlin.math.abs
 
-/** One physical track with separate lower and upper pitch-ratio handles.
+/** Restored compact two-thumb pitch-range track from app(6).zip.
+ *  One physical track with separate lower and upper pitch-ratio handles.
  * The two halves use different scales so 0.3..1.0 is not squeezed into a few pixels.
  * High end spans 1.0..10.0; pitch/timbre quality may worsen at the extremes.
  */
@@ -17,9 +18,16 @@ class PitchRangeSlider(context: Context) : View(context) {
     var upper = 3.5; private set
     var onRangeChanged: ((Double, Double) -> Unit)? = null
     private val ink = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val colors = UiTheme.palette(context)
+    private val palette = UiTheme.palette(context)
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
     private val density = resources.displayMetrics.density
-    private var dragging = 0 // 1 = lower, 2 = upper
+    // A touch is only eligible when it begins on one of the two thumb circles.
+    // An intentional horizontal gesture is required before claiming the ScrollView touch stream.
+    private var pendingThumb = 0 // 1 = lower, 2 = upper
+    private var dragging = 0
+    private var rejectedVertical = false
+    private var downX = 0f
+    private var downY = 0f
     private fun dp(n: Float) = n * density
     private val centerFraction = 0.40f
     private fun leftX() = paddingLeft + dp(24f)
@@ -27,10 +35,10 @@ class PitchRangeSlider(context: Context) : View(context) {
     private fun midX() = leftX() + (rightX() - leftX()) * centerFraction
     private fun lowX() = leftX() + (midX() - leftX()) * ((lower - 0.3) / 0.7).toFloat()
     private fun highX() = midX() + (rightX() - midX()) * ((upper - 1.0) / 9.0).toFloat()
-    private fun levelY() = dp(37f)
+    private fun levelY() = dp(29f)
 
     init {
-        contentDescription = UiLanguage.text(context, "変換倍率の範囲を設定。左つまみは低音側、右つまみは高音側")
+        contentDescription = context.getString(R.string.pitch_range_content_desc)
         isClickable = true
         setPadding(0, 0, 0, 0)
     }
@@ -43,7 +51,7 @@ class PitchRangeSlider(context: Context) : View(context) {
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec),
-            resolveSize(dp(85f).toInt(), heightMeasureSpec))
+            resolveSize(dp(62f).toInt(), heightMeasureSpec))
     }
 
     private fun drawLine(canvas: Canvas, x0: Float, x1: Float, y: Float,
@@ -65,21 +73,21 @@ class PitchRangeSlider(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val left = leftX(); val right = rightX(); val mid = midX(); val y = levelY()
-        drawLine(canvas, left, right, y, colors.track, 6f)
-        drawLine(canvas, lowX(), highX(), y, colors.accent, 6f)
-        drawLine(canvas, mid, mid, y - dp(11f), colors.muted, 2f)
-        txt(canvas, "0.3", left, y + dp(29f), 11f, colors.muted)
-        txt(canvas, "1.0", mid, y + dp(29f), 11f, colors.muted)
-        txt(canvas, "10.0", right, y + dp(29f), 11f, colors.muted)
-        for ((cx, color) in listOf(lowX() to colors.low,
-                                  highX() to colors.high)) {
-            ink.color = colors.handleOutline
+        drawLine(canvas, left, right, y, palette.track, 6f)
+        drawLine(canvas, lowX(), highX(), y, palette.accent, 6f)
+        drawLine(canvas, mid, mid, y - dp(11f), palette.border, 2f)
+        txt(canvas, "0.3", left, y + dp(23f), 11f, palette.muted)
+        txt(canvas, "1.0", mid, y + dp(23f), 11f, palette.muted)
+        txt(canvas, "10.0", right, y + dp(23f), 11f, palette.muted)
+        for ((cx, color) in listOf(lowX() to palette.low,
+                                  highX() to palette.high)) {
+            ink.color = palette.handleOutline
             canvas.drawCircle(cx, y, dp(13f), ink)
             ink.color = color
             canvas.drawCircle(cx, y, dp(10f), ink)
         }
-        txt(canvas, UiLanguage.text(context, "低音側"), (left + mid) * 0.5f, dp(14f), 12f, colors.low)
-        txt(canvas, UiLanguage.text(context, "高音側"), (mid + right) * 0.5f, dp(14f), 12f, colors.high)
+        txt(canvas, context.getString(R.string.pitch_lower_side), (left + mid) * 0.5f, dp(12f), 12f, palette.low)
+        txt(canvas, context.getString(R.string.pitch_upper_side), (mid + right) * 0.5f, dp(12f), 12f, palette.high)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -87,31 +95,62 @@ class PitchRangeSlider(context: Context) : View(context) {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 val x = event.x
-                dragging = if (abs(lowX() - highX()) < dp(4f)) {
+                val y = event.y
+                // Outside the thumb hit box, leave scrolling to the parent.
+                if (abs(y - levelY()) > dp(24f)) return false
+                val lowDistance = abs(x - lowX())
+                val highDistance = abs(x - highX())
+                if (minOf(lowDistance, highDistance) > dp(24f)) return false
+                pendingThumb = if (lowDistance == highDistance) {
                     if (x < midX()) 1 else 2
-                } else if (abs(x - lowX()) <= abs(x - highX())) 1 else 2
-                parent?.requestDisallowInterceptTouchEvent(true)
-                updateAt(x)
+                } else if (lowDistance < highDistance) 1 else 2
+                dragging = 0
+                rejectedVertical = false
+                downX = x
+                downY = y
+                // Do not block ScrollView here. Only lock touch after a horizontal drag.
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
-                if (dragging != 0) updateAt(event.x)
+                if (pendingThumb == 0) return false
+                if (dragging == 0) {
+                    val dx = event.x - downX
+                    val dy = event.y - downY
+                    if (rejectedVertical) return true
+                    if (abs(dy) > touchSlop && abs(dy) > abs(dx)) {
+                        rejectedVertical = true
+                        return true // parent ScrollView may intercept vertical movement
+                    }
+                    if (abs(dx) <= touchSlop || abs(dx) <= abs(dy) * 1.2f) return true
+                    dragging = pendingThumb
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                updateAt(event.x)
                 return true
             }
             MotionEvent.ACTION_UP -> {
+                // Tapping the track or a thumb never changes the range.
+                // Only a deliberate horizontal thumb drag adjusts the setting.
                 if (dragging != 0) updateAt(event.x)
-                dragging = 0
-                parent?.requestDisallowInterceptTouchEvent(false)
-                performClick()
-                return true
+                val handled = pendingThumb != 0
+                resetGesture()
+                if (handled) performClick()
+                return handled
             }
             MotionEvent.ACTION_CANCEL -> {
-                dragging = 0
-                parent?.requestDisallowInterceptTouchEvent(false)
-                return true
+                val handled = pendingThumb != 0
+                resetGesture()
+                return handled
             }
         }
         return super.onTouchEvent(event)
+    }
+
+    private fun resetGesture() {
+        parent?.requestDisallowInterceptTouchEvent(false)
+        pendingThumb = 0
+        dragging = 0
+        rejectedVertical = false
     }
 
     private fun updateAt(x: Float) {

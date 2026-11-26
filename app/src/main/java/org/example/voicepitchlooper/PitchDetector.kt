@@ -6,7 +6,7 @@ import kotlin.math.sqrt
 class PitchDetector {
     private val analysisRate = 12_000.0
     private val windowSize = 1024
-    private val downsampleFactor = 4
+    private val downsampleFactor = 2
     private val ring = FloatArray(2048)
     private var next = 0
     private var filled = 0

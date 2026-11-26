@@ -1,7 +1,9 @@
 # 第三者ソフトウェアの著作権・ライセンス表示
 
-この文書は、唄まるのソースコードに同梱される第三者ソフトウェアの出所を示します。
+この文書は、唄まるのソースコードに同梱、またはビルド時に取得して使用する第三者ソフトウェアの出所とライセンスを示します。
 **第三者の著作権はそれぞれの権利者に帰属し、唄まるの独自ソースのライセンス表示がこれらの条件を置き換えることはありません。**
+
+**配布時の注意：** GitHub上の文書だけでなく、配布するAPK・対応ソースに対して必要な著作権表示・ライセンス条件が利用者に提供されるようにしてください。Signalsmithを自動取得してビルドした場合は、使用したリビジョンとそのライセンスをリリースごとに確認してください。
 
 ## Rubber Band Library 4.0.0
 
@@ -15,6 +17,74 @@
 - ライセンス全文：`third_party/rubberband-4.0.0/COPYING`
 
 Androidアプリのネイティブライブラリは、同梱された `single/RubberBandSingle.cpp` およびそこから参照されるRubber Bandのソースで構築します。対応ソースコードとビルド設定はAPKの配布バージョンに合わせて提供する必要があります。
+
+## Signalsmith Stretch
+
+- 公式リポジトリ：https://github.com/Signalsmith-Audio/signalsmith-stretch
+- ライセンス：MIT License
+- 著作権：Copyright (c) 2022 Geraint Luff / Signalsmith Audio Ltd.
+- ビルド時の取得先：`third_party/signalsmith-stretch/`
+- 上流のライセンス原文：https://github.com/Signalsmith-Audio/signalsmith-stretch/blob/main/LICENSE.txt
+
+MIT License（原文・著作権表示を含む）：
+
+```text
+MIT License
+
+Copyright (c) 2022 Geraint Luff / Signalsmith Audio Ltd.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## Signalsmith Linear
+
+- 公式リポジトリ：https://github.com/Signalsmith-Audio/linear
+- ライセンス：MIT License
+- 著作権：Copyright (c) 2025 Signalsmith Audio
+- ビルド時の取得先：`third_party/signalsmith-linear/`
+- 上流のライセンス原文：https://github.com/Signalsmith-Audio/linear/blob/main/LICENSE.txt
+
+MIT License（原文・著作権表示を含む）：
+
+```text
+MIT License
+
+Copyright (c) 2025 Signalsmith Audio
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ## Rubber Bandの配布ソースに含まれる第三者コード
 
@@ -38,7 +108,7 @@ Rubber Bandの元の `README.md` と `COMPILING.md` にその他の依存物や�
 
 ## WindowsReceiver／VB-CABLE／ADB
 
-- WindowsReceiverは唄まるのPCマイク機能用の別プログラムです。今回確認したプロジェクトには実行ファイルがありますが、対応ソースコードや独立したライセンス表示は含まれていません。配布条件は公開前に権利者が確認してください。
+- WindowsReceiverは唄まるのPCマイク機能用の別プログラムです。READMEにはソースコード `WindowsReceiver/src/main.go`、ライセンス・ビルド情報 `WindowsReceiver/SOURCE_AND_LICENSE.txt` が案内されています。公開リポジトリと配布するWindowsReceiver.zipに対応ソースおよびライセンス情報が用意されているか、リリース時に確認してください。
 - VB-CABLEとAndroid SDK Platform-Tools（ADB）は本リポジトリや配布ZIPに同梱せず、利用者が各公式サイトから取得します。
   - VB-CABLE：https://vb-audio.com/Cable/
   - ADB：https://developer.android.com/tools/releases/platform-tools?hl=ja

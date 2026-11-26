@@ -10,8 +10,8 @@
     <string name="ui_008">現在の楽譜とBPMをプリセットに保存</string>
     <string name="ui_009">音声変換エンジン</string>
     <string name="ui_010">音声変換エンジンを選択</string>
-    <string name="ui_011">標準（低遅延・破裂音対策済み）</string>
-    <string name="ui_012">音質改善（PSOLA風）</string>
+    <string name="ui_011">標準（低遅延・一般的）</string>
+    <string name="ui_012">音質改善（推奨・PSOLA風）</string>
     <string name="ui_013">Rubber Band（フォルマント維持）</string>
     <string name="ui_014">Rubber Band（未導入・セットアップが必要）</string>
     <string name="ui_015">切り替えは停止中のみ。</string>

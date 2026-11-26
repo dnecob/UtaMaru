@@ -18,42 +18,46 @@ import kotlin.math.roundToInt
  * robust glottal closure detector. Breath, consonants and rapidly changing
  * fundamentals can still sound rough; comparisons must be made on device.
  *
- * Latency: 8192 samples (~171ms) plus platform/PC buffers.
- * Supports any input block size, 48kHz mono PCM16.
+ * Latency: 4096 samples (~171ms) plus platform/PC buffers.
+ * Supports any input block size, 24kHz mono PCM16.
  */
 class PitchShifter(private val maxRatio: Double = 3.5,
                    private val minRatio: Double = 0.5) {
     init { PitchRange(minRatio, maxRatio) }
     // Preserve the 1600Hz upper bound at the standard 3.5x setting.
     private val maxOutputHz = 1600.0 * maxRatio / 3.5
-    private val minOutputPeriod = 48000.0 / maxOutputHz
+    private val minOutputPeriod = 24000.0 / maxOutputHz
     // Preserve old >=65Hz behavior at the 0.5x setting. Lower settings
     // may need synthesis periods longer than the former 750-sample cap.
     private val minOutputHz = if (minRatio < 0.5) 25.0 else 65.0
-    private val maxOutputPeriod = 48000.0 / minOutputHz
-    private val rate = 48000.0
+    private val maxOutputPeriod = 24000.0 / minOutputHz
+    private val rate = 24000.0
     private val ringSize = 32768
     private val mask = ringSize - 1
     private val input = FloatArray(ringSize)
     private val sum = FloatArray(ringSize)
     private val weight = FloatArray(ringSize)
-    private val delay = 8192L
+    // Weighted source periodicity for each output sample. This selects unvoiced
+    // fallback WITHOUT changing the post-output VoiceNoiseGate or its settings.
+    private val periodicWeight = FloatArray(ringSize)
+    private val delay = 4096L
     private var cursor = 0L
     private var nextPulse = Double.NaN
     private var sourceMark = Double.NaN
-    private var sourcePeriod = 220.0 // initial estimate ~218Hz
+    private var sourcePeriod = 110.0 // initial estimate ~218Hz
     private var outputHz = 220.0
     // Analyze voicing at output time, ~171ms after microphone input.
     private val voicedHistory = ByteArray(ringSize)
     private var voicedMix = 0.0
     private var muteGain = 0.0
+    private var periodicMix = 0.0
     private var previousRatio = 1.0
 
     // Keep a sample-indexed circular history for a matching fixed output delay.
     private fun valueAt(position: Int): Double = input[position and mask].toDouble()
 
     private fun findMark(expected: Double, period: Double, first: Boolean): Double {
-        val halfWidth = (period * if (first) 0.48 else 0.32).roundToInt().coerceIn(8, 320)
+        val halfWidth = (period * if (first) 0.48 else 0.32).roundToInt().coerceIn(4, 160)
         val center = expected.roundToInt()
         // Pick a positive peak for phase-consistent glottal-pulse candidates.
         var bestIndex = center
@@ -85,21 +89,74 @@ class PitchShifter(private val maxRatio: Double = 3.5,
         return sourceMark
     }
 
-    private fun placePulse(synthesisCenter: Double, targetPeriod: Double, now: Long) {
+    /**
+     * Actual periodicity around the delayed source mark, independent of the
+     * pitch detector's 400ms held F0. A held F0 during a breath must not make
+     * random noise sound like a newly pitched voice.
+     *
+     * Search lags near the estimated period to tolerate pitch glide/vibrato.
+     * The samples are already in the 8192-sample input history.
+     */
+    private fun periodicityNear(center: Double): Double {
+        val period = sourcePeriod.coerceIn(24.0, 345.0)
+        val minLag = (period * 0.72).roundToInt().coerceAtLeast(18)
+        val maxLag = (period * 1.33).roundToInt().coerceAtMost(460)
+        val centerSample = center.roundToInt()
+        val windowLength = (period * 1.6).roundToInt().coerceIn(64, 425)
+        val start = centerSample - windowLength / 2
+        var best = -1.0
+        var bestLag = minLag
+        var lag = minLag
+        while (lag <= maxLag) {
+            val corr = normalizedLagCorrelation(start, windowLength, lag)
+            if (corr > best) { best = corr; bestLag = lag }
+            lag += 4
+        }
+        val lo = maxOf(minLag, bestLag - 4)
+        val hi = minOf(maxLag, bestLag + 4)
+        for (fine in lo..hi step 1) {
+            best = max(best, normalizedLagCorrelation(start, windowLength, fine))
+        }
+        // Fall back to unpitched original only when autocorrelation says the
+        // source is genuinely noise-like. No new threshold in VoiceNoiseGate.
+        return ((best - 0.28) / 0.35).coerceIn(0.0, 1.0)
+    }
+
+    private fun normalizedLagCorrelation(start: Int, window: Int, lag: Int): Double {
+        var dot = 0.0
+        var aa = 0.0
+        var bb = 0.0
+        var k = 0
+        while (k < window) {
+            val a = valueAt(start + k)
+            val b = valueAt(start + k - lag)
+            dot += a * b
+            aa += a * a
+            bb += b * b
+            k += 2
+        }
+        if (aa < 1e-9 || bb < 1e-9) return 0.0
+        return dot / kotlin.math.sqrt(aa * bb)
+    }
+
+    private fun placePulse(synthesisCenter: Double, targetPeriod: Double, now: Long,
+                           detectPeriodicity: Boolean) {
         val sourceTime = synthesisCenter - delay
         val analysisCenter = sourcePulseNear(sourceTime)
+        val coherence = if (detectPeriodicity) periodicityNear(analysisCenter).toFloat() else 1f
         // Overlap also on downward shifts, when synthesis periods grow longer.
         val radius = max(sourcePeriod * 1.2, targetPeriod * 0.90)
-            .roundToInt().coerceIn(64, 1500)
+            .roundToInt().coerceIn(32, 750)
         val start = synthesisCenter.roundToInt()
         for (offset in -radius..radius) {
             val t = start.toLong() + offset
-            if (t < now || t > now + 3500) continue
+            if (t < now || t > now + 1750) continue
             val x = (analysisCenter + offset).roundToInt()
             val w = (0.5 + 0.5 * cos(PI * offset / radius)).toFloat()
             val idx = t.toInt() and mask
             sum[idx] += valueAt(x).toFloat() * w
             weight[idx] += w
+            periodicWeight[idx] += w * coherence
         }
     }
 
@@ -127,36 +184,48 @@ class PitchShifter(private val maxRatio: Double = 3.5,
             voicedHistory[writeIndex] = if (voiced != null) 1 else 0
 
             // Smooth note changes without resetting pulse phase. ~12ms time constant.
-            outputHz += (wantedHz - outputHz) * 0.0017
+            outputHz += (wantedHz - outputHz) * 0.0034
             // Align pitch confidence with the output, not the current input.
             val alignedVoiced = t >= delay &&
                 voicedHistory[((t - delay).toInt() and mask)].toInt() != 0
-            voicedMix += ((if (alignedVoiced) 1.0 else 0.0) - voicedMix) * 0.0012
-            muteGain += ((if (mute) 0.0 else 1.0) - muteGain) * 0.004
+            voicedMix += ((if (alignedVoiced) 1.0 else 0.0) - voicedMix) * 0.0024
+            muteGain += ((if (mute) 0.0 else 1.0) - muteGain) * 0.008
 
-            val usable = t > delay + 2400
+            val usable = t > delay + 1200
             if (usable) {
-                if (nextPulse.isNaN()) nextPulse = t.toDouble() + 256.0
+                if (nextPulse.isNaN()) nextPulse = t.toDouble() + 128.0
                 val periodOut = (rate / outputHz).coerceIn(minOutputPeriod, maxOutputPeriod)
-                val radius = max(sourcePeriod * 1.2, periodOut * 0.9).coerceIn(64.0, 1500.0)
+                val radius = max(sourcePeriod * 1.2, periodOut * 0.9).coerceIn(32.0, 750.0)
                 // Schedule each grain early enough for its left edge to be available.
                 var scheduled = 0
                 while (nextPulse <= t + radius && scheduled < 4) {
-                    placePulse(nextPulse, periodOut, t)
+                    placePulse(nextPulse, periodOut, t, suppressRawFallback)
                     nextPulse += periodOut
                     scheduled++
                 }
             }
             val idx = t.toInt() and mask
             val produced = if (weight[idx] > 1e-5f) sum[idx] / weight[idx] else 0f
-            // Natural Voice Priority OFF: use ONLY the shifted signal.
-            // A high-pass-filtered "breath" copy of the original signal is NOT
-            // safe: it still contains original-pitch harmonics, creating an
-            // audible second voice alongside the shifted PSOLA output.
-            // Breathy phrase endings are instead preserved by the delayed,
-            // slower-release output noise gate (VoiceNoiseGate), not dry mixing.
+            val coherence = if (weight[idx] > 1e-5f)
+                (periodicWeight[idx] / weight[idx]).coerceIn(0f, 1f).toDouble() else 0.0
+            // Fast return to voiced synthesis (~1.7ms) avoids leaking the
+            // original pitch at voice onset. Slower exit (~9ms) prevents clicks.
+            val changeRate = if (coherence > periodicMix) 0.024 else 0.0046
+            periodicMix += (coherence - periodicMix) * changeRate
+            // Natural Voice Priority OFF: shift periodic/voiced source only.
+            // Noise-like source is delayed without a pitch shift so it cannot
+            // turn into periodic whistle noise. Do not blend dry voiced speech:
+            // that would introduce a second (original-pitch) voice.
+            // The post-output VoiceNoiseGate keeps its existing settings.
             val mixed = if (suppressRawFallback) {
-                produced.toDouble()
+                // Aperiodic input (breath, fricatives, silence) must not be
+                // tiled into a flute-like periodic output by PSOLA. Preserve
+                // it as time-aligned dry sound; voiced signal remains shifted.
+                val dry = if (usable && t >= delay) valueAt((t - delay).toInt()) else 0.0
+                // Match the approximate unvoiced energy of the previous wet
+                // output to avoid making the silent tail suddenly louder.
+                val unpitchedLevel = 0.85 / kotlin.math.sqrt(max(1.0, clampedRatio))
+                produced * periodicMix + dry * unpitchedLevel * (1.0 - periodicMix)
             } else {
                 // Preserve the previous optional original-voice behaviour
                 // when Natural Voice Priority / Original Monitor is enabled.
@@ -167,6 +236,7 @@ class PitchShifter(private val maxRatio: Double = 3.5,
             result[i] = (out * 32767.0).roundToInt().coerceIn(-32768, 32767).toShort()
             sum[idx] = 0f
             weight[idx] = 0f
+            periodicWeight[idx] = 0f
             cursor++
         }
         return result

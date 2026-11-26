@@ -10,4 +10,23 @@
     <string name="ui_225">前の小節を表示</string>
     <string name="ui_226">次の小節を表示</string>
     <string name="ui_227">↰一時保存</string>
+
+
+    <string name="ui_engine_stretcher24">Stretcher 24kHz（Rubber Band）</string>
+    <string name="ui_engine_signalsmith24">Signalsmith 24kHz</string>
+    <string name="ui_engine_native_bypass">24kHzネイティブエンジン対象外</string>
+    <string name="score_hpf_title">楽譜音程連動ハイパス（全エンジン共通）</string>
+    <string name="score_hpf_desc">0%=OFF。楽譜音程に対して低域ノイズを減衰しますが、割合を大きくしすぎると声の厚みも薄くなります。再生中も調整可。</string>
+    <string name="score_hpf_content_desc">ハイパスの割合を調整</string>
+    <string name="score_hpf_off">現在：OFF（低域カットなし）</string>
+    <string name="score_hpf_value">現在：楽譜音程の%1$d%%未満を減衰</string>
+    <string name="pitch_lower_limit_value">低音側の下限：%1$.2f倍</string>
+    <string name="pitch_upper_limit_value">高音側の上限：%1$.2f倍</string>
+    <string name="pitch_lower_limit_desc">低音側の下限を調整</string>
+    <string name="pitch_upper_limit_desc">高音側の上限を調整</string>
+
+    <string name="pitch_range_content_desc">ピッチ変換倍率の範囲。左のつまみは低音側、右のつまみは高音側</string>
+    <string name="pitch_lower_side">低音側</string>
+    <string name="pitch_upper_side">高音側</string>
+    <string name="pitch_range_slider_desc">青＝低音側の下限、緑＝高音側の上限。範囲を広げるほど声質が崩れやすくなります。</string>
 </resources>

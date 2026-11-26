@@ -7,7 +7,7 @@ import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /**
- * Legacy two-grain time-domain pitch shifter (48kHz, fixed ~171ms delay).
+ * Legacy two-grain time-domain pitch shifter (24kHz, fixed ~171ms delay).
  *
  * v0.7.3: do not jump the read-head phase when the tracked fundamental changes.
  * Instead, render the old and new grains together for 30ms and crossfade.
@@ -21,16 +21,16 @@ class LegacyPitchShifter(private val maxRatio: Double = 3.5,
     init { PitchRange(minRatio, maxRatio) }
     private val mask = 32768 - 1
     private val history = FloatArray(32768)
-    private val baseDelay = 8192.0
+    private val baseDelay = 4096.0
 
     private class Grain(val size: Int, var phase: Int = 0) {
         val window = DoubleArray(size) { i -> 0.5 - 0.5 * cos(2.0 * PI * i / size) }
         fun tick() { phase++; if (phase >= size) phase = 0 }
     }
 
-    private var active = Grain(2048)
+    private var active = Grain(1024)
     private var incoming: Grain? = null
-    private val crossfadeSamples = 1440 // 30ms at 48kHz
+    private val crossfadeSamples = 720 // 30ms at 24kHz
     private var crossfadeRemaining = 0
     private var written: Long = 0
     private var smoothedRatio = 1.0
@@ -39,18 +39,18 @@ class LegacyPitchShifter(private val maxRatio: Double = 3.5,
     private fun configureGrain(ratio: Double, fundamentalHz: Double?) {
         if (fundamentalHz == null || !fundamentalHz.isFinite() || fundamentalHz <= 0 ||
             abs(1.0 - ratio) < 0.035 || incoming != null) return
-        val pitchPeriod = 48000.0 / fundamentalHz
+        val pitchPeriod = 24000.0 / fundamentalHz
         val fundamentalGrain = 2.0 * pitchPeriod / abs(1.0 - ratio)
-        val cycles = (2048.0 / fundamentalGrain).roundToInt().coerceAtLeast(1)
+        val cycles = (1024.0 / fundamentalGrain).roundToInt().coerceAtLeast(1)
         val ideal = (fundamentalGrain * cycles).roundToInt()
-            .coerceIn(768, 4096).let { it + it % 2 }
+            .coerceIn(384, 2048).let { it + it % 2 }
         // At 5x/7x, large grains would read samples that haven't arrived yet.
         // Keep the 3.5x legacy algorithm completely unchanged.
         val maxSafeSize = if (maxRatio > 3.5) {
-            val bound = ((baseDelay - 512.0) / (maxRatio - 1.0)).toInt()
-                .coerceIn(768, 4096)
+            val bound = ((baseDelay - 256.0) / (maxRatio - 1.0)).toInt()
+                .coerceIn(384, 2048)
             bound - bound % 2
-        } else 4096
+        } else 2048
         val desired = ideal.coerceAtMost(maxSafeSize)
         if (abs(desired - active.size) > active.size * 0.008) {
             // Keep normalized position close to the old grain, then crossfade
@@ -86,11 +86,11 @@ class LegacyPitchShifter(private val maxRatio: Double = 3.5,
         configureGrain(desired, inputFundamentalHz)
         for (i in 0 until length) {
             history[written.toInt() and mask] = samples[i] / 32768.0f
-            smoothedRatio += (desired - smoothedRatio) * 0.0015
+            smoothedRatio += (desired - smoothedRatio) * 0.003
             if (maxRatio > 3.5) {
                 // During the 30ms grain crossfade, the old (longer) read head
                 // must stay inside the already recorded audio history.
-                val safeRatio = 1.0 + (baseDelay - 512.0) / active.size
+                val safeRatio = 1.0 + (baseDelay - 256.0) / active.size
                 if (smoothedRatio > safeRatio) smoothedRatio = safeRatio
             }
             val shift = 1.0 - smoothedRatio
@@ -103,9 +103,9 @@ class LegacyPitchShifter(private val maxRatio: Double = 3.5,
             }
             // The old mode hard-muted on pitch-tracking dropout. Fade both
             // dropout and the first voiced output over several milliseconds.
-            val audible = !mute && written >= baseDelay + 4096
+            val audible = !mute && written >= baseDelay + 2048
             val targetGain = if (audible) 1.0 else 0.0
-            outputGain += (targetGain - outputGain) * 0.003
+            outputGain += (targetGain - outputGain) * 0.006
             val clamped = (mixed * 0.82 * outputGain * 32767.0)
                 .coerceIn(-32768.0, 32767.0)
             output[i] = clamped.toInt().toShort()

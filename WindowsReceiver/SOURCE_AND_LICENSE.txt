@@ -1,0 +1,31 @@
+WindowsReceiver - Source Code and License
+========================================
+
+License: GNU General Public License, version 2 or (at your option) any later version (GPL-2.0-or-later).
+Copyright (C) 2026 UtaMaru project author (赫ねこ).
+See LICENSE in this directory for the complete GPL version 2 license text.
+
+Corresponding source code:
+  src/main.go                     Go receiver implementation (WinMM, TCP, PCM)
+  START_PC_USB.bat/.ps1           USB launcher and ADB setup
+  START_PC_WIFI.bat/.ps1          Wi-Fi launcher
+  CHECK_VBCABLE.ps1               VB-CABLE check
+  LOCALIZATION.ps1                Localized interface text
+  BUILD_RECEIVER.bat              Build instructions / helper
+
+To build on Windows:
+  1. Install Go 1.23.2 (https://go.dev/dl/) or a compatible Go toolchain.
+  2. From the WindowsReceiver directory, run BUILD_RECEIVER.bat.
+  3. The generated file is VoicePitchReceiver_Win64.exe.
+
+Exact reproducible build command used to verify this source (Go 1.23.2):
+  GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o VoicePitchReceiver_Win64.exe src/main.go
+
+This source reproduced the exact SHA-256 of the supplied executable:
+  0173842a8a2b47124745cce9d89785ba3c0bf1077a5fb78f2636bc982911fdae
+
+No third-party Go modules are required; the receiver uses the Go standard library and Windows winmm.dll.
+VB-CABLE and Android SDK Platform-Tools (ADB) are separate third-party tools and are NOT included.
+The GPL license of this program does not change those programs' separate licensing terms.
+
+When distributing a modified WindowsReceiver executable, provide the corresponding source and build instructions for that exact build. Keep applicable copyright and license notices.

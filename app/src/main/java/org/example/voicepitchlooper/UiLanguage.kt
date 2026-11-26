@@ -54,10 +54,13 @@ object UiLanguage {
         "現在の楽譜とBPMをプリセットに保存" to R.string.ui_008,
         "音声変換エンジン" to R.string.ui_009,
         "音声変換エンジンを選択" to R.string.ui_010,
-        "標準（低遅延・破裂音対策済み）" to R.string.ui_011,
-        "音質改善（PSOLA風）" to R.string.ui_012,
+        "標準（低遅延・一般的）" to R.string.ui_011,
+        "音質改善（推奨・PSOLA風）" to R.string.ui_012,
         "Rubber Band（フォルマント維持）" to R.string.ui_013,
+        "Stretcher 24kHz（Rubber Band）" to R.string.ui_engine_stretcher24,
+        "Signalsmith 24kHz" to R.string.ui_engine_signalsmith24,
         "Rubber Band（未導入・セットアップが必要）" to R.string.ui_014,
+        "24kHzネイティブエンジン対象外" to R.string.ui_engine_native_bypass,
         "切り替えは停止中のみ。" to R.string.ui_015,
         "音声がないときのノイズ抑制（推奨）" to R.string.ui_016,
         "音声入力が無い間は楽譜を一時停止" to R.string.ui_224,
@@ -342,9 +345,9 @@ object UiLanguage {
             "変換倍率:", "変換方式:", "ノイズ抑制:", "声質比較:", "出力先:",
             "音声エラー:", "機種や音声経路によって48kHzが使えない場合があります。",
             "エラー全文を共有してください。", "音質:", "休符 →", "を継続",
-            "標準（低遅延・破裂音対策済み）", "音質改善（PSOLA風）",
-            "Rubber Band（フォルマント維持）", "自然声優先", "原音比較", "従来処理",
-            "無変換", "音声加工なし", "Rubber Band対象外", "生マイク", "マイク変換",
+            "標準（低遅延・一般的）", "音質改善（推奨・PSOLA風）",
+            "Stretcher 24kHz（Rubber Band）", "Signalsmith 24kHz", "自然声優先", "原音比較", "従来処理",
+            "無変換", "音声加工なし", "24kHzネイティブエンジン対象外", "生マイク", "マイク変換",
             "テスト音", "検出なし", "確認中", "起動中…", "倍"
         )
         for (fragment in fragments) {
