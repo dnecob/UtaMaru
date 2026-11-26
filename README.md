@@ -21,7 +21,7 @@ Development is focused on improving audio quality and stability.
 Wi-FiマイクとしてPCに接続する場合を除き、ネットアクセスもしません。
 
 ⚠現在、音質・安定性の改善を優先して開発中です。⚠<br>
-次は直接MIDIデータを読み込み、再生パートを指定する事により和音音声を生成する機能を追加予定
+直接MIDIデータを読み込み、再生パートを指定する事により和音音声を生成する機能を追加予定
 
 ## ダウンロード Download
 
