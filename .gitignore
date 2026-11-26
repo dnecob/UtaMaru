@@ -39,3 +39,8 @@ google-services.json
 # Kotlin compiler cache
 .kotlin/
 /app/release/
+
+# Additional generated files
+.gradle-bootstrap/
+out/
+output-metadata.json
